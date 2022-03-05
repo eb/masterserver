@@ -1,0 +1,347 @@
+Dieses Dokument beschreibt die Netzwerk Protokolle, welche der Masterserver
+zur Zeit unterstützt.
+
+Das Dokument ist leider noch etwas chaotisch und definitiv unvollständig.
+ 
+
+1. Quake3 Protokoll
+	1.1. Master Server
+		1.1.1. getservers
+		1.1.2. getserversResponse
+		1.1.3. getKeyAuthorize
+		1.1.4. getmotd
+	1.2. Dedicated/Listen Server
+		1.2.1. getinfo
+		1.2.2. infoResponse
+		1.2.3. getstatus
+		1.2.4. statusResponse
+		1.2.5. getchallenge
+		1.2.6. challengeResponse
+		1.2.7. connect
+		1.2.8. connectResponse
+		1.2.9. heartbeat
+
+2. Heretic2 Protokoll
+	2.1.1. shutdown
+	2.1.2. heartbeat
+	2.1.3. info
+	2.1.4. status
+	2.1.5. print
+
+3. Quake2 Protokoll
+4. Links
+
+--
+
+1. Quake3 Protokoll
+----------------
+
+Achtung!
+Ich beziehe mich, sofern nicht ersichtlich, nur auf den Master Server von ID Software.
+Benutzte Versionen:
+Q3 1.31, 1.32
+QStat 2.4e
+Ethereal 0.9.3, 0.9.7
+
+
+1.1. Master Server
+------------------
+
+1.1.1. getservers
+-----------------
+(Client -> Master)
+
+getservers <protocolver> <servertype> <servertype> ...
+
+<protocolver> - Protokollversion (Q3 1.31 == 67)
+<servertype> - Welcher Server angezeigt werden sollen. Kann auch weggelassen werden um server zu bekommen, die weder voll noch leer sind.
+	empty - leere Server (keine Playerslots belegt)
+	full - volle Server (alle Playerslots belegt)
+	demo - Demo Server
+	ffa - Free For All Server
+	team - Team Deathmatch
+	tourney - Tournament (1v1) Server
+	ctf - Capture the Flag Server
+
+
+1.1.2. getserversResponse
+-------------------------
+
+getserversResponse<DATA>
+
+getserversResponse ist die Antwort des Masters auf getservers.
+ACHTUNG! getserversResponse endet mit \ (Hex 0x5c; niewis nitro endet mit Hex 0x0a) .
+Ab <DATA> folgen die Server in 6 byte Blöcken:
+	- 4 byte für IP Adresse
+	- 2 byte für Port
+
+Die Blöcke haben alle ein "\" vorangestellt. (Hex 0x5c)
+"\EOT" steht am Ende des Pakets.
+Der Master Server gibt mehrere UDP Pakete zurück, falls nicht alle Server in einem Paket geschickt werden können.
+Die UDP Pakete vom ID Master sind anscheinend max. 818 Byte an Inhalt.
+
+
+1.1.3. getKeyAuthorize
+----------------------
+(Client -> Master)
+
+getKeyAuthorize 0 <key>
+
+<key>	- Q3 CD Key
+
+Bemerkung:
+ID's Master Server antwortet auf getKeyAuthorize nicht mehr.
+Die Key Abfrage wurde seitens ID wohl abgeschaltet.
+
+Seit Anfang Oktober 2002 ist die Überprüfung wieder aktiv, wegen der Punkbuster
+Unterstützung.
+
+
+1.1.4. getmotd
+--------------
+(Client -> Master)
+
+getmotd "<DATA>"
+
+<DATA> - Daten/Text; Q3 übergibt standardmässig die Variablen version, renderer und challenge.
+	Beispiel: getmotd "\version\Q3 1.31 linux-i386 Dec 17 2001\renderer\GeForce3/AGP\challenge\1234567890"
+
+Bemerkung:
+ID's Master Server gibt keine Antwort mehr auf getmotd. Wahrscheinlich aus dem selben Grund wie bei getKeyAuthorize.
+
+
+1.2. Dedicated/Listen Server
+----------------------------
+
+1.2.1. getinfo
+--------------
+(Client -> Server)
+
+getinfo xxx
+
+Ob das "xxx" eine tiefere Bedeutung hat weiss ich nicht.
+
+1.2.2. infoResponse
+-------------------
+
+infoResponse \var\val\var\val\...
+
+infoResponse ist die Antwort des Servers auf getinfo.
+Ab infoResponse gibt der Server zuerst die Konsolen Variable und dann deren Wert auf dem Server zurück.
+Beide haben ein "\" vorangestellt.
+
+Bemerkung:
+Der Server gibt bei getinfo/infoResponse nur wenige Variablen zurück:
+sv_allowAnonymous
+game
+pure
+gametype
+sv_maxclients
+clients
+mapname
+hostname
+protocol
+challenge
+
+Um andere Server in einem _nicht_ gerouteten LAN zu finden, schickt Q3 "getinfo xxx" nach 255.255.255.255:[27960-27963].
+Die Server antworten dann und schon hat man eine Liste der Server im Netzwerk.
+
+getinfo wird höchstwahrscheinlich vom Master Server benutzt um festzustellen, ob ein Server voll, leer oder belegt ist, um die getservers Anfrage von Clients richtig zu beantworten.
+
+
+2.3. getstatus
+--------------
+(Client -> Server)
+
+getstatus
+
+getstatus ist eine ausführlichere Version von getinfo.
+Nähere Infos schreibe ich noch hier rein.
+Keine Parameter nötig.
+
+2.4. statusResponse
+-------------------
+
+statusResponse \var\val\var\val\... frags ping "nickname" ...
+
+statusResponse ist die Antwort des Servers auf getstatus.
+Direkt nach dem Befehl folgt 0x0a.
+Ab statusResponse gibt der Server zuerst den Namen der Konsolenvariable und dann deren Wert zurück.
+Beide haben ein "\" vorangestellt.
+Nach den Variablen kommt ASCII Hex 0x0A und ab dann die Spieler Infos.
+Die Spieler Infos sind durch Leerzeichen getrennt und tauchen in Blöcken auf.
+<anzahlfrags> <ping> "<nickname>"
+Am Ende des Pakets steht ASCII Hex 0x0A.
+
+Bemerkungen:
+Die Abfrage wurde mit qstat 2.4e ausgeführt, da der Q3 interne Serverbrowser nur getinfo benutzt.
+
+2.5. getchallenge
+-----------------
+(Client -> Server)
+
+getchallenge
+
+Keine Parameter nötig.
+
+2.6. challengeResponse
+----------------------
+(Server -> Client)
+
+challengeResponse <magicnumber>
+
+<magicnumber>	- long Variable
+
+2.7. connect
+------------
+(Client -> Server)
+
+connect <DATA>
+
+2.8. connectResponse
+--------------------
+(Server -> Client)
+
+connectResponse
+
+Keine Parameter nötig.
+
+2.9. heartbeat
+--------------
+(Server -> Master)
+
+heartbeat QuakeArena-1
+
+Heartbeats werden von Dedicated Servern an die in sv_master[1-8] definierten Master Server geschickt.
+heartbeats werden direkt nach einem Map Wechsel oder immer alle 300 Sekunden geschickt. Ob der Intervall geändert werden kann weiss ich noch nicht.
+Ob das "QuakeArena-1" eine tiefere Bedeutung hat, weiss ich auch noch nicht.
+Ich nehme jedoch stark an, dass es die Bezeichnung für das Spiel ist.
+Die Master Server antworten nicht auf heartbeat. (1way Kommunikation)
+
+Wenn man einen Server beendet schickt dieser in sehr kurzer Zeit 2 heartbeat Pakete an den/die Master Server; Signalisierung dass Server beendet wurde??
+
+--
+
+2. Heretic2 Protokoll
+---------------------
+
+Server Port: 28910
+Master Server Port: 28900
++set public 1
+public 1
+setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 Master Server)
+
+Heretic2 benutzt die selbe Sequenz am Anfang eines Paketes wie Quake3. (0xff 0xff 0xff 0xff)
+
+
+2.1.1. shutdown
+---------------
+(Server -> Master)
+
+shutdown
+
+Signalisiert, dass der Server heruntergefahren wird.
+
+
+2.1.2. heartbeat
+----------------
+(Server -> Master)
+
+heartbeat \var\val\var\val...
+
+Nach "heartbeat" folgt ein CRLF (Hex 0x0A) und es werden einige Variablen und deren Wert ausgegeben, nach welchen wiederrum ein CRLF (Hex 0x0A) folgt.
+Getrennt werden die Werte durch "\" (Hex 0x5C).
+Die Werte die ausgegeben werden:
+mapname
+nomonsters
+gamedate
+gamename
+maxclients
+protocol
+cheats
+timelimit
+fraglimit
+advancedstaff
+dmflags
+deathmatch
+version
+hostname
+userdir
+
+
+2.1.3. info
+-----------
+(Client -> Server)
+
+info 51
+
+"info" wird verwendet wenn man lokal im LAN einen H2 Server sucht.
+Der Client schickt ein Paket mit "info 51" an 255.255.255.255.
+51 ist die Protokoll Version.
+
+
+2.1.4. status
+-----------
+(Client -> Server)
+
+status
+
+Antwort: print \var\val\...
+
+qstat schickt an H2 Server "status" um deren Informationen zu bekommen.
+Die Server antworten in der Form, welche in "print" beschrieben wird.
+
+
+2.1.5. print
+----------
+(Server -> Client)
+
+print \var\val\...
+
+"print" ist die Antwort auf "status", und gibt Informationen über das laufende Spiel auf dem Server zurück.
+Trenner ist "\". (Hex 0x5C)
+Hier eine Liste der Variablen die der Server schickt:
+mapname
+nomonsters
+gamedate
+gamename
+maxclients
+protocol
+cheats
+timelimit
+fraglimit
+advancedstaff
+dmflags
+deathmatch
+version
+hostname
+userdir
+game
+
+"game" scheint nur aufzutauchen falls es gesetzt ist.
+
+
+--
+
+3. Quake2 Protokoll
+-------------------
+
+Server Port: 27910
+Master Server Port: 27900
++set public 1
+public 1
+setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 Master Server)
+
+
+4. Links
+--------
+
+QStat - http://www.qstat.org
+XQF - http://www.linuxgames.com/xqf/
+Ethereal - http://www.ethereal.com
+
+
+Letzte Änderung: 09.10.2002 André Schulz
+
+(C) Copyright 2002 Ingo Rohlfs & André Schulz
+Released under GPL

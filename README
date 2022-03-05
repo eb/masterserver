@@ -1,0 +1,69 @@
+masterserver v0.2
+-----------------
+
+1. Introduction
+2. Goals
+3. Installation
+4. Misc
+
+
+1. Introduction
+
+masterserver is an attempt at writing a generic master server for
+game servers, which register themselves to a master server.
+masterserver is easily extendable via plugins written in C.
+
+The name will most likely change, any suggestions welcome.
+
+Beware: This is alpha quality. So it might crash 'n' burn.
+Contributions and suggestions more than welcome.
+
+
+2. Goals
+
+- generic master server
+- easy to extend via plugins
+- output of server lists in XML
+- document the network protocols of the supported games
+- admin interface via console and tcp/ip
+- more to come ...
+
+
+4. Installation
+
+Should be pretty straightforward.
+Just execute "make" and it will compile.
+To install execute "make install". (as root)
+Now, you're ready to go.
+
+You can start masterserver as any user. (preferably as a non privileged user)
+masterserver has the ability to bind to a specific interface.
+If you want to do that, you have to be root.
+After masterserver has bound the sockets to the specific interface(s)
+it drops the root privileges and sets its uid to "masterserver".
+So you have to create a new user named "masterserver".
+
+In the Makefile there are 2 other targets, named "masterserver" and "plugins", to either
+only compile the masterserver or only the plugins.
+
+There is no configuration file.
+masterserver reads all files in the MASTERSERVER_LIB_DIR, which is defined
+in masterserver.h and opens all files as shared objects.
+(yes this isn't secure; this will change in the future)
+
+Btw, to uninstall execute "make uninstall". (as root)
+
+
+3. Misc
+
+Thanks to:
+iptables team and their source code from which I've learned how to use 
+shared objects. <http://www.netfilter.org>
+
+Ingo Rohlfs <irohlfs@irohlfs.de> for suggestions on the thread system and the
+nightly debugging sessions.
+
+Viktor Vasilev aka shr1k3 <shr1k3@gmx.at> for suggestions and code auditing.
+
+
+Last modified: 3rd Dec 2002 by André Schulz

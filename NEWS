@@ -1,0 +1,6 @@
+2002-12-03	masterserver-0.2 release
+- Binding to specific interfaces/devices implemented (e.g. -i --listen-on eth0)
+	Allows up to 15 interfaces (this is hardcoded in masterserver.c line 169)
+- masterserver now automatically daemonizes (e.g. -D --no-daemon to prevent)
+
+2002-11-03	masterserver-0.1 release
