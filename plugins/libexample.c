@@ -33,7 +33,8 @@ int example_ports[] = { 12345, 12346, 12347 };
 
 static void info(void);
 static int process(char *packet); // process packet and return a value
-
+static void cleanup(void);
+void init_plugin(void) __attribute__ ((constructor));
 
 static
 struct masterserver_plugin example
@@ -56,7 +57,7 @@ info(void)
 	INFO("  compiled for masterserver v%s\n", masterserver_version);
 }
 
-static unsigned int
+static int
 process(char *packet)
 {
 	// insert packet processing code here
@@ -70,7 +71,7 @@ cleanup(void)
 }
 
 void
-_init(void)
+init_plugin(void)
 {
 	register_plugin(&example);
 }

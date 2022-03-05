@@ -109,7 +109,8 @@ static int process_getservers(char *packet);
 static int send_getstatus();
 static int process_statusResponse(char *packet);
 static void cleanup(void);
-void _init(void);
+//void init_plugin(void) __attribute__ ((constructor));
+void init_plugin(void) __attribute__ ((constructor)); 
 
 static
 struct masterserver_plugin q3m
@@ -825,7 +826,7 @@ cleanup(void)
 }
 
 void
-_init(void)
+init_plugin(void)
 {
 	register_plugin(&q3m);
 }

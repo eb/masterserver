@@ -1,3 +1,73 @@
+2004-04-26	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOCOLS
+	merge and translation done
+
+* docs/PROTOKOLLE
+	deleted
+
+* docs/PROTOKOLLE.uk_us
+	deleted
+
+* README
+	added more information on LAN usage
+
+* masterserver.h
+	version number bumped to 0.3.3
+
+* plugins/libh2.c
+	version number bumped up to 0.3.3
+
+* plugins/libq2.c
+	version number bumped up to 0.3.3
+
+* NEWS
+	added 0.3.3 release information
+
+2004-04-19	Andre' Schulz	<andre@malchen.de>
+* plugins/libq2.c
+	fixed "query" string again by deleting \n and setting size to 5
+
+* plugins/libh2.c
+	fixed "query" string again by deleting \n and setting size to 5
+	
+2004-04-06	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOCOLS
+	merged more of PROTOKOLLE and PROTOKOLLE.uk_us
+
+2004-03-01	Andre' Schulz	<andre@malchen.de>
+* README
+	added info on LAN party/DNS name stuff
+
+* docs/PROTOCOLS
+	created
+	merged some of PROTOKOLLE and PROTOKOLLE.uk_us
+
+2004-02-09	Andre' Schulz	<andre@malchen.de>
+* plugins/libqw.c
+	renamed _init() function to init_plugin()
+	added __attribute__ ((constructor)) to init_plugin() declaration
+
+* plugins/libq2.c
+	renamed _init() function to init_plugin()
+	added __attribute__ ((constructor)) to init_plugin() declaration
+
+* plugins/libh2.c
+	renamed _init() function to init_plugin()
+	added __attribute__ ((constructor)) to init_plugin() declaration
+
+* plugins/libq3.c
+	renamed _init() function to init_plugin()
+	added __attribute__ ((constructor)) to init_plugin() declaration
+
+* plugins/Makefile
+	removed -rdynamic from CFLAGS
+	replaced $(LD) with $(CC) in %.so target
+
+* plugins/libexample.c
+	renamed _init() function to init_plugin()
+	added __attribute__ ((constructor)) to init_plugin() declaration
+	minor fixes and changes
+
 2004-02-01	Andre' Schulz	<andre@malchen.de>
 * plugins/libh2.c
 	removed H2M_PORT definition

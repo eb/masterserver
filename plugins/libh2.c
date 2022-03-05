@@ -33,8 +33,8 @@ const int	h2_pkt_header_len	= 4;
 // we just check for the keyword
 const char	h2_pkt_heartbeat[]	= "heartbeat";
 const int	h2_pkt_heartbeat_len= 9;
-const char	h2_pkt_query[]		= "query\n";
-const int	h2_pkt_query_len	= 6;
+const char	h2_pkt_query[]		= "query";
+const int	h2_pkt_query_len	= 5;
 const char	h2_pkt_servers[]	= "servers ";
 const int	h2_pkt_servers_len	= 8;
 const char	h2_pkt_shutdown[]	= "shutdown";
@@ -44,7 +44,7 @@ const int	h2_pkt_ping_len		= 4;
 const char	h2_pkt_ack[]		= "ack";
 const int	h2_pkt_ack_len		= 3;
 
-const char h2m_plugin_version[] = "0.3.2";
+const char h2m_plugin_version[] = "0.3.3";
 static int h2m_ports[] = { 28900 };
 
 static void info(void); // print information about plugin
@@ -53,7 +53,7 @@ static int process_heartbeat(char *packet);
 static int process_shutdown(char *packet);
 static int process_ping(char *packet);
 static int process_query(char *packet);
-
+void init_plugin(void) __attribute__ ((constructor));
 
 static
 struct masterserver_plugin h2m
@@ -274,14 +274,14 @@ process(char *packet)
 		} else if (strncmp(packet+h2_pkt_header_len, h2_pkt_ping, h2_pkt_ping_len) == 0) {
 			return process_ping(packet);
 		}
-	} else if (strcmp(packet, h2_pkt_query) == 0) {
+	} else if (strncmp(packet, h2_pkt_query, h2_pkt_query_len) == 0) {
 		return process_query(packet);
 	}
 	return -1; // invalid packet
 }
 
 void
-_init(void)
+init_plugin(void)
 {
 	register_plugin(&h2m);
 }

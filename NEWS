@@ -1,4 +1,11 @@
+2004-04-26	masterserver-0.3.3 release
+- fix libh2/q2 gamespy query bug for real
+- docs/PROTOKOLLE* merged and translated to docs/PROTOCOLS
+- masterserver LAN usage pointers in README
+- QuakeWorld plugin
+
 2004-02-01	masterserver-0.3.2 release
+- libh2 process() function fixed
 - libh2/q2 gamespy query bug fixed (thanks to fatty <fatty@gmx.ch>)
 - made log messages smaller
 - docs/PROTOKOLLE updated

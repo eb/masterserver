@@ -18,7 +18,7 @@
 #endif
 
 int debug = 0; // global debug var
-char masterserver_version[] = "0.3.2";
+char masterserver_version[] = "0.3.3";
 
 // XXX: merge struct in_addr and in_port_t to struct sockaddr_in ?
 typedef struct {

@@ -27,7 +27,7 @@ Contributions and suggestions are very welcome.
 
 - generic master server
 - easy to extend via plugins
-- document the network protocols of supported games
+- document the network protocols of the supported games
 - admin interface via console and tcp/ip
 - ...
 
@@ -84,6 +84,33 @@ switch. MASTERSERVER_LIB_DIR defaults to "/usr/lib/lasange/masterserver".
 Btw, to uninstall masterserver, run "make uninstall". (as root)
 
 
+Note for masterserver usage on LAN parties:
+-------------------------------------------
+You should setup the following DNS names to point to the IP on which
+masterserver will run.
+
+libq3/Quake3
+	Q3 master DNS name:	master.quake3arena.com
+	Q3 MOTD DNS name:	update.quake3arena.com
+	Q3 auth DNS name:	authorize.quake3arena.com
+
+	command line options:
+	+set sv_master1 10.0.0.1 +set sv_master2 masterserver.exhale.de
+
+libq2/Quake2
+	command line options:
+	+set public 1 +setmaster 10.0.0.1 masterserver.exhale.de (max. 7 masters)
+
+libh2/Heretic2
+	H2 master DNS name:	master.ravensoft.com
+
+	command line options:
+	+set public 1 +setmaster 10.0.0.1 masterserver.exhale.de (max. 7 masters)
+
+libqw/QuakeWorld
+	command line options:
+	+setmaster 10.0.0.1 10.0.0.2 (max. 8 masters)
+
 4. Misc
 -------
 
@@ -98,11 +125,13 @@ Viktor Vasilev aka shr1k3 <shr1k3@gmx.at>
 	Suggestions and code auditing
 	Logging code
 
-qstat team and their source code <http://www.qstat.org>
+qstat team for their source code <http://www.qstat.org>
 
 fatty <fatty@gmx.ch>
 	packet dumps which helped fix a small bug in libq2
 
+QuakeForge <http://www.quakeforge.net>
 
-Last modified: 2004-01-14 by Andre' Schulz
+
+Last modified: 2004-04-26 by Andre' Schulz
 
