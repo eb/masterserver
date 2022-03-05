@@ -1,3 +1,16 @@
+2003-10-25	masterserver-0.3.1 release
+- major bugfixes in Quake3 plugin and masterserver
+
+2003-10-20	masterserver-0.3 release
+- Quake2 plugin
+- Heretic2 plugin
+- masterserver doesn't automatically daemonize anymore
+- lots of changes under the "hood"
+- binding to interfaces works now as intended
+- motd support in Quake3 plugin
+- no interface limit
+- plugins can use more than one port
+
 2002-12-03	masterserver-0.2 release
 - Binding to specific interfaces/devices implemented (e.g. -i --listen-on eth0)
 	Allows up to 15 interfaces (this is hardcoded in masterserver.c line 169)

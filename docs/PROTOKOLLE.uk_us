@@ -1,16 +1,19 @@
-Dieses Dokument beschreibt die Netzwerk Protokolle, welche von Master Servern
-benutzt werden.
+ATTENTION:
+English is not my native language so if there are any spelling/grammar/...
+errors please send me a diff/email so I can correct them.
 
-Das Dokument ist leider noch etwas chaotisch und definitiv unvollständig.
+
+This document describes the protocols used by master servers.
+
+Unfortunately, this document is still chaotic and definitely incomplete.
  
-
-1. Quake3 Protokoll
-	1.1. Master Server
+1. Quake3 protocol
+	1.1. Masterserver
 		1.1.1. getservers
 		1.1.2. getserversResponse
 		1.1.3. getKeyAuthorize
 		1.1.4. getmotd
-	1.2. Dedicated/Listen Server
+	1.2. Dedicated/Listen server
 		1.2.1. getinfo
 		1.2.2. infoResponse
 		1.2.3. getstatus
@@ -22,14 +25,14 @@ Das Dokument ist leider noch etwas chaotisch und definitiv unvollständig.
 		1.2.9. heartbeat
 		1.2.10 print
 
-2. Heretic2 Protokoll
+2. Heretic2 protocol
 	2.1.1. shutdown
 	2.1.2. heartbeat
 	2.1.3. info
 	2.1.4. status
 	2.1.5. print
 
-3. Quake2 Protokoll
+3. Quake2 protocol
 	3.1. heartbeat
 	3.2. query
 	3.3. shutdown
@@ -45,30 +48,28 @@ Das Dokument ist leider noch etwas chaotisch und definitiv unvollständig.
 	3.13. ping
 	3.14. ack
 
-4. Unreal Tournament Protokoll
+4. Unreal Tournament protocol
 	4.1. heartbeat
 	4.2. info
 	4.3. status
 	4.4. REPORTQUERY
-	4.5. HTTP Traffic
-	4.6. Master Server Traffic
+	4.5. HTTP traffic
+	4.6. Masterserver traffic
 
 5. Links
 
 
 --
 
-1. Quake3 Protokoll
-===================
+1. Quake3 protocol
+==================
 
-Server Port: UDP 27960
-Master Server Port: UDP 27950
-Motd Server Port: UDP 27951
-Auth Server Port: UDP 27952
-Protokoll Marker: 0xff 0xff 0xff 0xff
+Server port: UDP 27960
+Masterserver port: UDP 27950
+Protocol marker: 0xff 0xff 0xff 0xff
 
-1.1. Master Server
-------------------
+1.1. Masterserver
+-----------------
 
 1.1.1. getservers
 -----------------
@@ -78,29 +79,30 @@ Protokoll Marker: 0xff 0xff 0xff 0xff
 0010  36 20 65 6d 70 74 79 20 66 75 6c 6c 20 64 65 6d   6 empty full dem
 0020  6f 0a                                             o.    
 
-getservers		- Befehl
-66				- Protokollversion
+getservers		- command
+66				- protocol version
 					Q3 1.30 == 66
 					Q3 1.31 == 67
 					Q3 1.32	== 68
-empty full demo	- Welche Server angezeigt werden sollen. Kann auch weggelassen
-				  werden um server zu bekommen, die weder voll noch leer sind.
-Folgende Schlüsselwörter sind mir bekannt:
-	empty - leere Server (keine Playerslots belegt)
-	full - volle Server (alle Playerslots belegt, bis auf die private Slots)
-	demo - Demo Server
-	ffa - Free For All Server
+empty full demo	- indicates which servers should be displayed. Can be omitted
+				  to get servers which are neither full nor empty.
+The following keywords are known to me:
+	empty - empty servers (no player slots occupied)
+	full - full servers (all player slots occupied, except private slots)
+	demo - demo servers
+	ffa - Free For All servers
 	team - Team Deathmatch
-	tourney - Tournament (1v1) Server
-	ctf - Capture the Flag Server
+	tourney - Tournament (1on1) servers
+	ctf - Capture the Flag servers
 
-Nach einigen Tests habe ich herausgefunden, dass zumindest die Protokoll-
-version vom ID Q3 Master verarbeitet wird. D.h. der Master gibt eine
-Serverliste zurück, welche nur Server mit "protocol" 66 enthält.
-getservers Pakete werden an master.quake3arena.com:27950 geschickt.
+After some tests I've found out that the ID Q3 master server processes at
+least the protocol version. That means the master returns a server list which
+includes only servers who have the variable "protocol" set to 66.
+
 
 1.1.2. getserversResponse
 -------------------------
+(Master -> Client)
 
 0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 52 65   ÿÿÿÿgetserversRe
 0010  73 70 6f 6e 73 65 5c d9 d3 f8 cc fb e7 5c 18 f3   sponse\ÙÓøÌûç\.ó
@@ -110,17 +112,18 @@ getservers Pakete werden an master.quake3arena.com:27950 geschickt.
 0050  24 72 82 4e bd 5c 45 4f 54                        $r.N½\EOT
 
 
-getserversResponse ist die Antwort des Masters auf ein "getservers" Paket.
-Nach "getserversResponse" folgen die Server in 6 byte Blöcken:
-	- 4 byte für IP Adresse
-	- 2 byte für Port
-
-Die Blöcke sind durch "\" (0x5c) getrennt.
-"\EOT" markiert das Ende des Pakets.
-Der Master Server gibt mehrere UDP Pakete zurück, falls nicht alle Server
-in einem Paket geschickt werden können. Die Pakete vom ID Master sind
-max. 810 Byte gross. (UDP Header nicht eingerechnet.)
-Das entspricht 112 Servern pro Paket.
+getserversResponse is the response to a "getservers" packet.
+The IP and port address of the servers are encoded in 6 byte blocks which are
+separated by "\" ASCII chars. (Hex 0x5C)
+The string "\EOT" marks the end of the packet.
+The master server returns multiple UDP packets if there are too many servers
+to fit into one packet. The limit for one packet is 112 servers which
+translates to:
+112*(6+1)	= 784 bytes (112 servers + delimiter)
++ 4			= 788 bytes (protocol marker)
++ 18		= 806 bytes (length of command)
++ 4			= 810 bytes ("\EOT")
+So every packet the ID Q3 master sends has a maximum of 810 bytes payload.
 
 
 1.1.3. getKeyAuthorize
@@ -131,14 +134,13 @@ Das entspricht 112 Servern pro Paket.
 0010  69 7a 65 20 30 20 78 78 78 78 78 78 78 78 78 78   ize 0 xxxxxxxxxx
 0020  78 78 78 78 78 78                                 xxxxxx
 
-Der Key besteht aus 16 Zeichen der Form [A-Za-z0-9].
+The key consists of 16 characters out of [A-Za-z0-9].
 
-Bemerkung:
-ID's Master Server antwortet auf getKeyAuthorize nicht mehr.
-Die Key Abfrage wurde seitens ID wohl abgeschaltet.
-Angeblich soll die Key Abfrage wieder eingeschaltet worden sein, wegen
-Punkbuster.
-getKeyAuthorize Pakete werden an authorize.quake3arena.com:27952 geschickt.
+Note:
+ID's Q3 master server doesn't reply to the "getKeyAuthorize" command any more.
+Afaik the authorization has been suspended by ID.
+I read somewhere that the authorization is back online because of PunkBuster.
+FIXME: check if this is true
 
 
 1.1.4. getmotd
@@ -153,27 +155,23 @@ getKeyAuthorize Pakete werden an authorize.quake3arena.com:27952 geschickt.
 0050  63 68 61 6c 6c 65 6e 67 65 5c 32 31 31 30 35 34   challenge\211054
 0060  38 39 37 36 22 0a                                 8976".
 
-Q3 übergibt standardmässig die Variablen version, renderer und challenge.
+Q3 transmits the variables "version", "renderer" and "challenge".
 
-Bemerkung:
-Der Q3 Client schickt das motd Paket an Port 27951, auf welchem kein Programm
-horcht. Man kriegt nur ein ICMP Destination Unreachable.
-getmotd Pakete werden an update.quake3arena.com:27951 geschickt.
-
+Note:
+ID's Q3 master doesn't reply to "getmotd" any more. (ICMP Port Unreachable)
 
 1.1.5. motd
 -----------
 (Master -> Client)
 
-0000  ff ff ff ff 6d 6f 74 64 20 22 63 68 61 6c 6c 65   ÿÿÿÿmotd "challe
-0010  6e 67 65 5c 38 32 32 32 38 33 31 36 38 5c 6d 6f   nge\822283168\mo
-0020  74 64 5c 46 75 6c 6c 20 76 65 72 73 69 6f 6e 20   td\Full version 
-0030  6e 6f 77 20 61 76 61 69 6c 61 62 6c 65 20 66 6f   now available fo
-0040  72 20 64 6f 77 6e 6c 6f 61 64 21 21 5c 22         r download!!\"
+0000  ff ff ff ff 6d 6f 74 64  20 22 63 68 61 6c 6c 65   ÿÿÿÿmotd  "challe
+0010  6e 67 65 5c 38 32 32 32  38 33 31 36 38 5c 6d 6f   nge\8222 83168\mo
+0020  74 64 5c 46 75 6c 6c 20  76 65 72 73 69 6f 6e 20   td\Full  version 
+0030  6e 6f 77 20 61 76 61 69  6c 61 62 6c 65 20 66 6f   now avai lable fo
+0040  72 20 64 6f 77 6e 6c 6f  61 64 21 21 5c 22         r download!!\"
 
-motd Antwort von RtCW: Enemy Territory.
-Sollte aber identisch mit Q3 sein.
-Der Challenge Wert wird aus dem getmotd Paket geparst.
+"motd" reply taken from RtCW: Enemy Territory, which should be identical to
+Q3. The "challenge" value is parsed from the "getmotd" packet.
 
 
 1.2. Dedicated/Listen Server
@@ -185,7 +183,7 @@ Der Challenge Wert wird aus dem getmotd Paket geparst.
 
 0000  ff ff ff ff 67 65 74 69 6e 66 6f 0a               ÿÿÿÿgetinfo.
 
-Keine Parameter bekannt.
+No parameters known.
 
 1.2.2. infoResponse
 -------------------
@@ -199,7 +197,7 @@ Keine Parameter bekannt.
 0060  68 6f 73 74 6e 61 6d 65 5c 53 70 79 72 6f 73 20   hostname\Spyros 
 0070  4c 61 69 72 5c 70 72 6f 74 6f 63 6f 6c 5c 36 38   Lair\protocol\68
 
-Zum Vergleich ein 1.30 dedicated Server der baseq3 fährt:
+In comparison, a 1.30 dedicated server running a baseq3 game.
 
 0000  ff ff ff ff 69 6e 66 6f 52 65 73 70 6f 6e 73 65   ÿÿÿÿinfoResponse
 0010  0a 5c 73 76 5f 61 6c 6c 6f 77 41 6e 6f 6e 79 6d   .\sv_allowAnonym
@@ -212,12 +210,12 @@ Zum Vergleich ein 1.30 dedicated Server der baseq3 fährt:
 0080  28 31 29 5c 70 72 6f 74 6f 63 6f 6c 5c 36 36      (1)\protocol\66
 
 
-"infoResponse" ist die Antwort des Servers auf ein "getinfo" Paket.
-Ab "infoResponse" gibt der Server zuerst die Konsolen Variable und dann
-deren Wert auf dem Server zurück. Trennzeichen ist "\".
+"infoResponse" is the reply of the server to a "getinfo" packet.
+Starting after "infoResponse" the server prints all console variables and
+their values, separated by the "\" ASCII character.
 
-Bemerkung:
-Der Server gibt bei getinfo/infoResponse nur wenige Variablen zurück:
+Note:
+The server returns only a small set of variables:
 punkbuster
 pure
 gametype
@@ -227,16 +225,15 @@ mapname
 hostname
 protocol
 
-Der 1.30 Server gibt dazu noch "sv_allowAnonymous" aus, exklusive "punkbuster".
+The 1.30 server above additionally prints "sv_allowAnonymous".
 
-Um andere Server in einem _nicht_ gerouteten LAN zu finden, schickt Q3 ein
-"getinfo" Paket nach 255.255.255.255:[27960-27963].
-Die Server antworten dann und schon hat man eine Liste der Server im Netzwerk.
+To find other servers, Q3 broadcasts "getinfo" packets. (i.e. send packets to
+255.255.255.255:[27960-27963])
+The servers reply to that packet and you have a list of servers running Q3.
+(on the ports 27960-27963)
 
-getinfo wird vieleicht vom Master Server benutzt um festzustellen,
-ob ein Server voll, leer oder belegt ist, um die getservers Anfrage von 
-Clients richtig zu beantworten.
-
+"getinfo" may be used by the master to check if a server is full or empty
+to answer the "getservers" packets from the clients correctly.
 
 1.2.3. getstatus
 --------------
@@ -247,16 +244,15 @@ Clients richtig zu beantworten.
 0000  ff ff ff ff 67 65	74 73 74 61 74 75 73 20 30 31   ÿÿÿÿgetstatus 10
 0010  36 31 38 32 39 35 34 37 37 32 33                  61829547723
 
-getstatus ist eine ausführlichere Version von getinfo und wird vom Masterserver
-nach jedem heartbeat geschickt.
-Optionaler Parameter ist ein challenge Wert. Der Parameter wird meines Wissens
-nur vom Masterserver benutzt.
 
+"getstatus" requests more verbose information from a server than a
+"getinfo" packet. This command is also used by the ID Q3 Master with a
+challenge. The challenge is optional.
 
 1.2.4. statusResponse
 ---------------------
 
-Leerer baseq3 1.32 Server:
+An empty baseq3 1.32 server:
 
 0000  ff ff ff ff 73 74 61 74 75 73 52 65 73 70 6f 6e   ÿÿÿÿstatusRespon
 0010  73 65 0a 5c 73 76 5f 70 75 6e 6b 62 75 73 74 65   se.\sv_punkbuste
@@ -283,7 +279,7 @@ Leerer baseq3 1.32 Server:
 0160  61 6d 65 5c 62 61 73 65 71 33 5c 67 5f 6e 65 65   ame\baseq3\g_nee
 0170  64 70 61 73 73 5c 30 0a                           dpass\0.
 
-Hier zum Vergleich ein baseq3 1.30 Server mit 8 Spielern:
+In comparison, a baseq3 1.30 server with 8 players:
 
 0000  ff ff ff ff 73 74 61 74 75 73 52 65 73 70 6f 6e   ÿÿÿÿstatusRespon
 0010  73 65 0a 5c 76 65 72 73 69 6f 6e 5c 51 33 20 31   se.\version\Q3 1
@@ -327,7 +323,7 @@ Hier zum Vergleich ein baseq3 1.30 Server mit 8 Spielern:
 0270  46 46 41 5b 46 69 73 68 5e 37 69 22 0a 36 20 35   FFA[Fish^7i".6 5
 0280  30 20 22 52 32 44 32 22 0a                        0 "R2D2".
 
-Hier ein statusReponse welches auf ein getstatus mit challenge antwortet:
+This is a statusReponse which was sent in reply to a getstatus with challenge:
 
 0000  ff ff ff ff 73 74 61 74 75 73 52 65 73 70 6f 6e   ÿÿÿÿstatusRespon
 0010  73 65 0a 5c 63 68 61 6c 6c 65 6e 67 65 5c 31 30   se.\challenge\10
@@ -355,18 +351,14 @@ Hier ein statusReponse welches auf ein getstatus mit challenge antwortet:
 0170  6d 65 5c 62 61 73 65 71 33 5c 67 5f 6e 65 65 64   me\baseq3\g_need
 0180  70 61 73 73 5c 30 0a                              pass\0.
 
-statusResponse ist die Antwort des Servers auf getstatus.
-Ab statusResponse gibt der Server zuerst den Namen der Konsolenvariable und
-dann deren Wert zurück. Trennzeichen ist "\".
-Nach den Variablen kommt ASCII Hex 0x0A und ab dann die Spieler Infos.
-Die Spieler Infos sind durch Leerzeichen getrennt und tauchen in Blöcken auf.
-<anzahlfrags> <ping> "<nickname>"
-Diese Blöcke sind wiederrum durch ASCII Hex 0x0A getrennt.
-Am Ende des Pakets steht ASCII Hex 0x0A.
-
-Bemerkungen:
-Die Abfrage wurde mit qstat 2.4e ausgeführt, da der Q3 interne Serverbrowser
-nur getinfo benutzt.
+"statusResponse" is the answer of the server to a "getstatus" packet.
+Following the "statusResponse" string in the packet are names of console
+variables and their respective values separated by the "\" ASCII char.
+"\n" (ASCII Hex 0x0A) marks the end of the variables; player info follows.
+The player info is separated by whitespace and is bundled in blocks.
+<num_frags> <ping> "<nickname>"
+The blocks themselves are delimited by ASCII Hex 0x0A.
+A second "\n" marks the end of the packet.
 
 1.2.5. getchallenge
 -----------------
@@ -374,7 +366,7 @@ nur getinfo benutzt.
 
 0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65   ÿÿÿÿgetchallenge
 
-Keine Parameter.
+No paramters known.
 
 1.2.6. challengeResponse
 ----------------------
@@ -383,7 +375,7 @@ Keine Parameter.
 0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 52 65 73   ÿÿÿÿchallengeRes
 0010  70 6f 6e 73 65 20 39 36 31 31 36 36 35 31         ponse 96116651
 
-Die Zahl nach "challengeResponse" ist wahrscheinlich ein "signed 32bit integer".
+The number is most likely a signed 32 bit integer.
 
 1.2.7. connect
 ------------
@@ -408,7 +400,7 @@ Die Zahl nach "challengeResponse" ist wahrscheinlich ein "signed 32bit integer".
 0100  61 e1 61 52 34 8e 6b 9e c2 cc 41 8c e1 48 96 d5   aáaR4.k.ÂÌA.áH.Õ
 0110  91 8b db 66 18 19 13 fc e8 00                     ..Ûf...üè.
 
-Nach "challengeResponse" schickt der Client ein Paket, dass wie dieses aussieht.
+This is the answer of a client to a "challengeResponse" packet.
 
 1.2.8. connectResponse
 --------------------
@@ -417,7 +409,7 @@ Nach "challengeResponse" schickt der Client ein Paket, dass wie dieses aussieht.
 0000  00 01 6d 38 6d 38 00 1b e1 3e ff ff ff ff 63 6f   ..m8m8..á>ÿÿÿÿco
 0010  6e 6e 65 63 74 52 65 73 70 6f 6e 73 65            nnectResponse   
 
-Keine Parameter.
+No parameters known.
 
 1.2.9. heartbeat
 --------------
@@ -426,19 +418,18 @@ Keine Parameter.
 0000  ff ff ff ff 68 65 61 72 74 62 65 61 74 20 51 75   ÿÿÿÿheartbeat Qu
 0010  61 6b 65 41 72 65 6e 61 2d 31 0a                  akeArena-1.
 
-Heartbeats werden von Dedicated Servern an die in sv_master[1-8] definierten
-Master Server geschickt. Heartbeats werden direkt nach einem Map Wechsel, alle
-300 Sekunden oder wenn ein Spieler das Spiel betritt oder verlässt geschickt.
-"QuakeArena-1" scheint eine ID zu sein.
-sv_master1 ist standardmässig master.quake3arena.com.
+Heartbeats are sent by dedicated servers to the IP adresses defined in the
+console variables sv_master[1-8].
+Heartbeats are sent every 300 seconds, after a map change or when a player
+enters or leaves the game. The string "QuakeArena-1" is a identification of the
+game server.
 
-Wenn man einen Server beendet schickt dieser in sehr kurzer Zeit 2 heartbeat
-Pakete an den/die Master Server, um zu signalisieren, dass dieser abgeschaltet
-wird.
+If a server is shutdown it sends 2 "heartbeat" packets in quick succession
+to indicate to the master that it's shutting down.
 
-Ich habe herausgefunden, dass auf ein "heartbeat" Paket vom Master ein
-"getstatus" Paket mit challenge folgt, womit der Master sich die Informationen
-(wie z.B. "protocol", etc.) über den Server holt.
+I also found out that the ID Q3 master sends a "getstatus" packet to the server
+just after having received a "heartbeat". I guess that's the method to get
+more information from the server to answer "getservers" packets.
 
 1.2.10 print
 ------------
@@ -447,24 +438,28 @@ Ich habe herausgefunden, dass auf ein "heartbeat" Paket vom Master ein
 0010  20 75 73 65 73 20 70 72 6f 74 6f 63 6f 6c 20 76    uses protocol v
 0020  65 72 73 69 6f 6e 20 36 36 2e 0a                  ersion 66..
 
-Mit einem "print" Paket kann der Server den Client den Text nach "print"
-anzeigen lassen.
-Wird verwendet bei "Invalid Password", falscher Protokoll Version, etc.
+With the "print" packet the server can tell the client to display text
+messages on the monitor.
+This packet is used for "Invalid Password", "Wrong protocol version", etc.
+messages.
+It may hold some interesting possibilities regarding DoS attacks on clients or
+the LASANGE system I'm developing.
 
 --
 
-2. Heretic2 Protokoll
-=====================
+2. Heretic2 protocol
+====================
+FIXME: rewrite H2 section
 
-Server Port: UDP 28910
-Master Server Port: UDP 28900
-Protokoll Marker: 0xff 0xff 0xff 0xff
+Server port: UDP 28910
+Master server port: UDP 28900
+Protocol marker: 0xff 0xff 0xff 0xff
 
 +set public 1
 public 1
-setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 Master Server)
+setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 master servers)
 
-Heretic2 benutzt die selbe Sequenz am Anfang eines Paketes wie Quake3. (0xff 0xff 0xff 0xff)
+Heretic2 uses the same sequence at the beginning of a packet as Q3. (0xff 0xff 0xff 0xff)
 
 
 2.1.1. shutdown
@@ -473,8 +468,7 @@ Heretic2 benutzt die selbe Sequenz am Anfang eines Paketes wie Quake3. (0xff 0xf
 
 shutdown
 
-Signalisiert, dass der Server heruntergefahren wird.
-
+Tells the master that the server is shutting down.
 
 2.1.2. heartbeat
 ----------------
@@ -482,9 +476,9 @@ Signalisiert, dass der Server heruntergefahren wird.
 
 heartbeat \var\val\var\val...
 
-Nach "heartbeat" folgt ein CRLF (Hex 0x0A) und es werden einige Variablen und deren Wert ausgegeben, nach welchen wiederrum ein CRLF (Hex 0x0A) folgt.
-Getrennt werden die Werte durch "\" (Hex 0x5C).
-Die Werte die ausgegeben werden:
+A CRLF follows the "heartbeat" string, as well as console variables and their
+respective values, which are separated by "\" chracters.
+The values which are printed:
 mapname
 nomonsters
 gamedate
@@ -501,17 +495,15 @@ version
 hostname
 userdir
 
-
 2.1.3. info
 -----------
 (Client -> Server)
 
 info 51
 
-"info" wird verwendet wenn man lokal im LAN einen H2 Server sucht.
-Der Client schickt ein Paket mit "info 51" an 255.255.255.255.
-51 ist die Protokoll Version.
-
+"info" packets are used to find servers in a LAN.
+The client sends a "info" packet to 255.255.255.255. (i.e. broadcast)
+The number after "info" is the protocol version of the client.
 
 2.1.4. status
 -----------
@@ -556,15 +548,15 @@ game
 
 --
 
-3. Quake2 Protokoll
-===================
+3. Quake2 protocol
+==================
 
-Server Port: UDP 27910
-Master Server Port: UDP 27900
+Server port: UDP 27910
+Master server port: UDP 27900
 +set public 1
 public 1
-setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 Master Server)
-Protokoll Marker: 0xff 0xff 0xff 0xff
+setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 master servers)
+Protocol marker: 0xff 0xff 0xff 0xff
 
 
 3.1. heartbeat
@@ -587,9 +579,9 @@ Protokoll Marker: 0xff 0xff 0xff 0xff
 00d0  75 78 5c 68 6f 73 74 6e 61 6d 65 5c 6e 6f 6e 61   ux\hostname\nona
 00e0  6d 65 0a                                          me.   
 
-Alle 300 Sekunden wird signalisiert, dass der Server noch läuft.
-Warum die Konsolen Variablen mitgeschickt werden, wüsste ich auch gerne.
-
+A "heartbeat" packet is sent every 300 seconds.
+Following the "heartbeat" string are console variables and their respective
+values.
 
 3.2. query
 ----------
@@ -597,7 +589,7 @@ Warum die Konsolen Variablen mitgeschickt werden, wüsste ich auch gerne.
 
 0000  71 75 65 72 79 0a 00                              query..
 
-Fordert die Serverliste vom Master an.
+Requests the server list from the master.
 
 3.3. shutdown
 -------------
@@ -605,8 +597,7 @@ Fordert die Serverliste vom Master an.
 
 0000  ff ff ff ff 73 68 75 74 64 6f 77 6e               ÿÿÿÿshutdown
 
-Signalisiert dem/den Master(n), dass der Server heruntergefahren wurde.
-
+Tells the master that the server is shutting down.
 
 3.4. status
 -----------
@@ -614,13 +605,13 @@ Signalisiert dem/den Master(n), dass der Server heruntergefahren wurde.
 
 0000  ff ff ff ff 73 74 61 74 75 73 0a                  ÿÿÿÿstatus.
 
-Abfrage der Spiel-/Serverdaten.
-
+Requests server info.
 
 3.5. print
 ----------
+(Server -> Client)
 
-1 Spieler, baseq2:
+1 player, baseq2:
 
 0000  ff ff ff ff 70 72 69 6e 74 0a 5c 6d 61 70 6e 61   ÿÿÿÿprint.\mapna
 0010  6d 65 5c 71 32 64 6d 31 5c 6e 65 65 64 70 61 73   me\q2dm1\needpas
@@ -638,7 +629,7 @@ Abfrage der Spiel-/Serverdaten.
 00d0  6f 73 74 6e 61 6d 65 5c 6e 6f 6e 61 6d 65 0a 30   ostname\noname.0
 00e0  20 36 20 22 43 68 69 63 6b 65 6e 4d 61 6e 22 0a    6 "ChickenMan".
 
-Zum Vergleich 13 Spieler, gloom:
+In comparison, 13 players, gloom:
 
 0000  ff ff ff ff 70 72 69 6e 74 0a 5c 6d 61 70 6e 61   ÿÿÿÿprint.\mapna
 0010  6d 65 5c 68 61 67 67 65 73 5f 66 69 78 32 5c 67   me\hagges_fix2\g
@@ -679,9 +670,8 @@ Zum Vergleich 13 Spieler, gloom:
 0240  6b 69 6c 6c 22 0a 31 36 20 33 33 20 22 5b 56 61   kill".16 33 "[Va
 0250  6d 70 69 72 65 5d 42 6c 6f 6f 64 22 0a            mpire]Blood".
 
-Antwort auf "status".
-Genauere Beschreibung folgt.
-
+Answer to "status" packet.
+FIXME: I'm working on a more verbose description.
 
 3.6. info
 ---------
@@ -691,8 +681,8 @@ Genauere Beschreibung folgt.
 0010  20 20 20 6e 6f 6e 61 6d 65 20 20 20 20 71 32 64      noname    q2d
 0020  6d 31 20 20 30 2f 20 38 0a                        m1  0/8.
 
-Serverinfo.
-
+Server info.
+FIXME: more verbose description
 
 3.7. info
 ---------
@@ -700,8 +690,8 @@ Serverinfo.
 
 0000  ff ff ff ff 69 6e 66 6f 20 33 34                  ÿÿÿÿinfo 34
 
-Client broadcastet ein solches Paket um andere Server zu finden.
-34 ist die Protokoll Version.
+The client broadcasts this packet to find servers.
+The number is the client's protocol version.
 
 
 3.8. getchallenge
@@ -711,7 +701,7 @@ Client broadcastet ein solches Paket um andere Server zu finden.
 0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65   ÿÿÿÿgetchallenge
 0010  0a                                                .     
 
-Ein "Challenge" vom Server anfordern.
+Requests a challenge number from the server.
 
 3.9. challenge
 --------------
@@ -720,8 +710,8 @@ Ein "Challenge" vom Server anfordern.
 0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 20 32 32   ÿÿÿÿchallenge 22
 0010  36 39 35                                          695
 
-Antwort auf ein "getchallenge" Paket.
-
+Answer to a "getchallenge" packet.
+Number is most likely a signed 32 bit integer.
 
 3.10. connect
 ------------
@@ -736,7 +726,7 @@ Antwort auf ein "getchallenge" Paket.
 0060  43 68 69 63 6b 65 6e 4d 61 6e 5c 68 61 6e 64 5c   ChickenMan\hand\
 0070  30 22 0a                                          0".   
 
-
+This packet is sent when a client connects to a server.
 
 3.11. client_connect
 --------------------
@@ -745,7 +735,7 @@ Antwort auf ein "getchallenge" Paket.
 0000  ff ff ff ff 63 6c 69 65 6e 74 5f 63 6f 6e 6e 65   ÿÿÿÿclient_conne
 0010  63 74                                             ct    
 
-
+FIXME: description
 
 3.12. servers
 -------------
@@ -756,18 +746,14 @@ Antwort auf ein "getchallenge" Paket.
 0020  30 cc 6d 06 88 a5 50 f3 6d 06 92 57 dc 05 6d 06   0Ìm..¥Póm..WÜ.m.
 0030  42 a2 3a 29 6d 06 88 a5 50 f3 6d 07               B¢:)m..¥Póm.
 
-Paket mit Serverliste von Q2 Master an Client.
-Es gibt offensichtlich keine Trennzeichen wie bei getserversResponse von einem
-Q3 Master.
-Das einzige Trennzeichen ist ein 0x20 nach "servers".
-Die Server sind wie bei dem Q3 Master in 6 Byte Blöcken verpackt.
-	4 Byte IP Adresse
-	2 Byte Port
+Answer to a "query" packet. This packet includes the server list.
+There are no delimiter characters. The servers are encoded in 6 byte blocks.
+4 bytes IP adress
+2 bytes port adress
 
-Anmerkung:
-Paket stammt vom Gloom Masterserver master.planetgloom.com, da leider kein
-Q2 Master von ID Software mehr läuft.
-
+Note:
+This packet originates from the Gloom master server at master.planetgloom.com
+since ID's Q2 master isn't running any more.
 
 3.13. ping
 ----------
@@ -775,8 +761,8 @@ Q2 Master von ID Software mehr läuft.
 
 0000  ff ff ff ff 70 69 6e 67                           ÿÿÿÿping
 
-Wird beim ausführen von "setmaster" in der Console geschickt.
-
+This packet is sent after entering the "setmaster" command in the server
+console. It's also being sent before sending a "heartbeat" packet.
 
 3.14. ack
 ---------
@@ -784,42 +770,44 @@ Wird beim ausführen von "setmaster" in der Console geschickt.
 
 0000  ff ff ff ff 70 61 63 6b                           ÿÿÿÿack
 
-Antwort auf "ping".
+Answer to "ping".
 
 
 --
 
-4. Unreal Tournament Protokoll
-==============================
+4. Unreal Tournament Protocol
+=============================
+FIXME: reorganize and add packet dumps
 
-Server Port: UDP 7778
-Master Server Port: TCP 28900
+Server port: UDP 7778
+Master server port: TCP 28900
 
-UT benutzt das Gamespy Protokoll, welches ziemlich simpel ist.
-Die Form ist immer gleich.
-Es werden Variablen und Werte gesendet die der Form:
-\variable\wert\variable\wert\...
+UT uses the Gamespy protocol which is pretty simple.
+The packet consists of variables and their respective values which are
+separated by "\" characters.
+
+\variable\value\variable\value\...
 
 4.1. heartbeat
 --------------
 (Server -> Master)
 
-Es gibt 2 verschiedene Heartbeat Pakete.
-1. Epic Master Server
-2. Gamespy Master Server
+There are 2 different heartbeat packets.
+1. Epic master server
+2. Gamespy master server
 
-Pakete für Epic Master Server sehen folgendermassen aus:
+1. Packets for the Epic master look like this:
 \heartbeat\7778\gamename\ut\gamever\436
 
-Der Wert von "heartbeat" gibt den Port an auf welchem der Server läuft.
-"gamename" ist der Name des Spiels.
-"gamever" die Version vom Game Server.
+The value of "heartbeat" indicates the port on which the server is running.
+"gamename" is the name of the game. (duh ;))
+"gamever" is the game version.
 
-Pakete für Gamespy Master Server:
+
+2. Packets for the Gamespy master server look like this:
 \heartbeat\7778\gamename\ut
 
-Die Optionen haben dieselbe Bedeutung wie bei den Heartbeat Paketen für
-Epic Master Server.
+The variables have the same meaning as the ones in the Epic heartbeat packet.
 
 4.2. info
 ---------
@@ -827,15 +815,14 @@ Epic Master Server.
 
 \info\
 
-Dient zur Abfrage der Server Daten.
-Das Antwort Paket enthält Variablen und Optionen in der Form:
-\variable\option\variable\option\...\
+This is used to request server info.
+The answer packet includes variables and their respective values of the shape:
+\variable\value\variable\value\...\
 
-Das Antwort Paket ist nicht speziell gekennzeichnet.
-Antwort auf "\info\" ist ein Paket das folgendermassen aussieht:
+There is no special indication if the packet is an answer.
+The reply looks like the following:
 
 \hostname\jolt.co.uk - Last Man Standing [Anticamper] (02)\hostport\7867\maptitle\Morpheus\mapname\DM-Morpheus\gametype\LastManStanding\numplayers\0\maxplayers\10\gamemode\openplaying\gamever\436\minnetver\400\worldlog\false\wantworldlog\false\queryid\89.1\final\
-
 
 4.3. status
 -----------
@@ -843,17 +830,16 @@ Antwort auf "\info\" ist ein Paket das folgendermassen aussieht:
 
 \status\
 
-Anforderung von detaillierten Server Daten.
-Antwort in der Form:
-\variable\option\variable\option\...\
+Requests more verbose info from a server.
+The reply has the following shape:
+\variable\value\variable\value\...\
 
-Das Antwort Paket ist nicht speziell gekennzeichnet:
-Antwort Paket sieht folgendermassen aus:
+The reply has no specific header or indication thereof.
+It looks like the following:
 
 \hostname\[CSHP] UTASSAULT.thegamebox.org\hostport\7777\maptitle\Operation Desertstorm\mapname\AS-Desertstorm\gametype\Assault\numplayers\0\maxplayers\12\gamemode\openplaying\gamever\436\minnetver\432\worldlog\true\wantworldlog\true\queryid\91.1\final\g\true\wantworldlog\true\queryid\23.1\final\istenserver\False\password\False\timelimit\0\fraglimit\10\minplayers\0\changelevels\True\tournament\False\gamestyle\Hardcore\AdminName\Resonate / Bry\AdminEMail\resonate@jolt.co.uk\player_0\`Black_Panache\frags_0\0\ping_0\ 140\team_0\0\mesh_0\Spectator\skin_0\None\face_0\\ngsecret_0\false\player_1\master\frags_1\5\ping_1\ 75\team_1\255\mesh_1\Male Soldier\skin_1\SoldierSkins.hkil\face_1\SoldierSkins.matrix\ngsecret_1\true\player_2\1nf3rn0\frags_2\0\ping_2\ 63\team_2\255\mesh_2\Male Commando\skin_2\CommandoSkins.goth\face_2\CommandoSkins.Kragoth\ngsecret_2\false\player_3\AnimeE\frags_3\4\ping_3\ 105\team_3\255\mesh_3\Male Soldier\skin_3\SoldierSkins.Gard\face_3\SoldierSkins.Von\ngsecret_3\true\queryid\59.1\final\
 
-FIXME: ein paar erklärende Worte schreiben
-
+FIXME: description
 
 4.4. REPORTQUERY
 ----------------
@@ -861,8 +847,7 @@ FIXME: ein paar erklärende Worte schreiben
 
 REPORTQUERY
 
-Ein Broadcast vom Client auf die Ports 8777-8786.
-
+A broadcast from the client to the ports 8777-8786.
 
 4.5. HTTP Traffic
 -----------------
@@ -874,10 +859,10 @@ Connection: close\r\n
 Host: unreal.epicgames.com:80\r\n
 \r\n
 
-UT baut eine TCP Verbindung zu unreal.epicgames.com:80 auf und
-fordert per HTTP "/UpdateServer/utmotd436.html" an.
-FIXME: ältere UT Versionen ausprobieren und schauen, ob sich das
-	   der Befehl ändert. Z.B.: utmotd<version>.html
+UT connects to unreal.epicgames.com:80 using TCP and requests the file
+"/UpdateServer/utmotd436.html" via HTTP.
+FIXME: try older UT versions and check if the query changes.
+	   i.e.: utmotd<version>.html
 
 --
 
@@ -887,9 +872,9 @@ Connection: close\r\n
 Host: unreal.epicgames.com:80\r\n
 \r\n
 
-UT baut eine HTTP Verbindung zu unreal.epicgames.com:80 auf und
-fordert per HTTP "/UpdateServer/utmaster.txt" an.
-Die "utmaster.txt" Datei sieht folgendermassen aus:
+UT connects to unreal.epicgames.com:80 using TCP and requests the file
+"/UpdateServer/utmaster.txt" via HTTP.
+The file "utmaster.txt" looks like this:
 UBrowser.UBrowserGSpyFact,MasterServerAddress=unreal.epicgames.com,MasterServerTCPPort=28900,Region=0,GameName=ut
 UBrowser.UBrowserGSpyFact,MasterServerAddress=master0.gamespy.com,MasterServerTCPPort=28900,Region=0,GameName=ut
 
@@ -901,7 +886,7 @@ Connection: close\r\n
 Host: unreal.epicgames.com:80\r\n
 \r\n
 
-Die "utircserver.txt" Datei sieht folgendermassen aus:
+The "utircserver.txt" file looks like this:
 irc.utchat.com
 
 
@@ -909,7 +894,7 @@ irc.utchat.com
 --------------------------
 (Master -> Client)
 
-Sobald der Client mit dem Master verbunden ist schickt der Master folgende Meldungen:
+As soon as the client is connected to the master it sends the following messages:
 \basic\\secure\wookie
 \gamename\ut\location\0\validate\2/TYFMRc\final\
 \list\\gamename\ut\final\
@@ -918,11 +903,10 @@ Sobald der Client mit dem Master verbunden ist schickt der Master folgende Meldu
 ...
 \ip\...\final\
 
-Die IPs werden per TCP Verbindung übertragen.
-FIXME: Mehr über validate herausfinden.
-\final\ scheint der Abschluss für die Übertragung zu sein.
-Danach wird die Verbindung geschlossen.
-
+The communication is via TCP.
+FIXME: found out more about "validate"
+The string "\final\" seems to indicate the end of the communication.
+After that the connection is closed.
 
 --
 
@@ -935,7 +919,8 @@ Ethereal - http://www.ethereal.com
 Q2 Network Protocol Specs - http://www.csse.monash.edu.au/~timf/bottim/q2net/q2network-0.03.html
 
 
-Letzte Änderung: 2003-10-22 Andre' Schulz
+Last modified: 08/25/2003 Andre' Schulz
 
 (C) Copyright 2003 Ingo Rohlfs & Andre' Schulz
 Released under GPL
+

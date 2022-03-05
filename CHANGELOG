@@ -1,0 +1,446 @@
+2003-10-25	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	deleted all code which had something to do with options in getservers packets
+	rewrote most of process_getservers()
+	version number bumped to 0.7.1
+	made error messages more verbose
+	other minor changes
+
+* masteserver.c
+	version number bumped to 0.3.1
+
+* README
+	updates all around
+
+2003-10-24	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	fixed: skipped one server during removal in plugin_heartbeat_thread()
+	fixed: num_msgs got set to -1 in plugin_thread()
+	minor changes
+	
+* logging.h
+	minor changes
+
+* plugins/libq3.c
+	fixed off-by-one and other bugs in process_statusResponse()
+	fixed bad abort condition in process_getservers() for-loop
+
+2003-10-22	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOKOLLE
+	small update to q3 section
+	date format changed to ISO 8601
+
+* README
+	date format changed to ISO 8601
+
+2003-10-20	Andre' Schulz	<andre@malchen.de>
+* logging.c
+	log_init() now returns an int
+
+* logging.h
+	changed log_init() return type to int
+
+* masterserver.c
+	got rid of most fprintf() calls in favor of our own logging code
+	version number bumped to 0.3
+	fixed a bug when binding to more than one interface
+	minor changes
+	much faster replacement code in delete_server()
+
+* plugins/libh2.c
+	removed an unused variable
+
+* plugins/libq2.c
+	removed an unused variable
+
+* plugins/libq3.c
+	fixed not sending server list if no options given in getservers packet
+	deleted some superfluous DEBUG() messages
+	added getmotd INFO() message
+
+* plugins/libexample.c
+	minor changes
+
+* NEWS
+	added info on 0.3 release
+
+* Makefile
+	added RMDIR
+
+2003-10-19	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	fixed a bug with sockets in plugin_thread()
+	fewer messages when not in debug mode
+	fixed a memory problem in socket creation routines
+
+* plugins/libh2.c
+	fixed
+	split up the process() function
+
+* plugins/libq2.c
+	fixed
+	split up the process() function
+
+* plugins/libq3.c
+	minor changes
+
+* plugins/libexample.c
+	changed code to work with the API changes
+
+2003-10-18	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	rewrote cmdline parser with getopt()
+	standard behavior is now to _not_ fork into background
+	binding to 1 interface works now
+	split ERROR() macro up in ERROR() and ERRORV()
+		this fixes a compile problem with gcc 2.95.3 (and maybe others)
+	minor changes and fixes
+	multi port support is in!
+
+2003-10-13	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	fixed a bug in process_getservers() parser
+	added missing \n to some log messages
+
+2003-10-12	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	eliminated strtok() in process_getservers()
+	added missing error handling to [mc]alloc() calls
+	some minor changes/fixes
+
+2003-09-17	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	calculate getstatus msg_out_length dynamically
+
+2003-09-11	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	q3_pkt_heartbeat_len++
+
+2003-09-07	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	new statusResponse parser
+	preliminary motd support
+	now sending getstatus with challenge
+	added cleanup()
+
+* docs/PROTOKOLLE
+	tiny correction in "motd"
+
+* masterserver.h
+	added cleanup() to masterserver_plugin struct
+
+* masterserver.c
+	small change due to cleanup() in plugin
+
+2003-08-27	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	revert s/strncmp/strcmp/ changes in process()
+	added "\n" to q3_pkt_heartbeat
+	player info parser almost completed
+	create challenge in send_getstatus()
+
+* masterserver.c
+	clear the incoming packet buffer
+
+2003-08-26	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	s/strncmp/strcmp/
+	q3m_player_data_t struct added
+	began work on player data parser
+	rewrote and renamed process_infoResponse() to process_statusResponse()
+	rewrote and renamed send_getinfo() to send_getstatus()
+
+* plugins/libq2.c
+	s/strncmp/strcmp/
+
+* plugins/libh2.c
+	s/strncmp/strcmp/
+
+2003-08-25	Andre' Schulz	<andre@malchen.de>
+* plugins/libq2.c
+	fix s/nr_servers/num_servers/ breakage
+
+* plugins/libh2.c
+	fix s/nr_servers/num_servers/ breakage
+
+* plugins/libq3.c
+	error handling of [m|re|c]alloc()
+	rewrote q3m_private_data_t to reflect s/getinfo/getstatus/ change
+
+* masterserver.c
+	error handling of calloc() at start of plugin_thread()
+	small optimization of cleanup loop at end of plugin_thread()
+
+2003-08-24	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	getserversResponse packet assembler mostly done
+	version number bumped to 0.7
+
+* docs/PROTOKOLLE
+	tiny change
+
+* docs/PROTOKOLLE.uk_us
+	tiny change
+
+2003-08-23	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	s/nr_servers/num_servers/
+	parser for infoResponse packets rewritten using strtok()
+	parser for getservers packets done
+	began getserversResponse packet assembler overhaul
+	process() split up into several functions
+	new function process_heartbeat()
+	new function send_getinfo()
+	new function process_getservers()
+	new function process_infoResponse()
+	added _options bit field to q3m_private_data_t
+
+* masterserver.c
+	s/nr_servers/num_servers/
+	free() private_data of plugins during cleanup
+
+* masterserver.h
+	s/nr_servers/num_servers/ in struct masterserver_plugin for consistency
+
+2003-08-22	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	replaced snprintf() with memcpy()
+	killed unsigned char ip, port
+
+2003-06-09	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOKOLLE
+	Q3: "heartbeat" and "getservers" updated
+
+* plugins/libq3.c
+	private_data added
+	send "getinfo" on every "heartbeat" (this is not right; will fix later)
+	"infoResponse" packet parser 
+
+2003-04-26	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	version number bumped to 0.6
+
+* plugins/libq2.c
+	works now with the new masterserver_plugin struct
+	less "chatty"
+	version number bumped to 0.3
+
+* plugins/libh2.c
+	overwritten with libq2.c; works now, too
+
+2003-04-20	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	INFO() message typo fixed in plugin_heartbeat_thread()
+
+* plugins/libq3.c
+	new code works
+
+2003-04-17	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	msg_out and msg_out_length changes
+	
+* masterserver.h
+	char *msg_out -> char **msg_out
+	int msg_out_length -> int *msg_out_length
+	int num_msgs added
+	math.h include
+
+* plugins/libq3.c
+	now only sending 112 servers per packet
+
+2003-03-14	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	transferred some code from main() into functions:
+		int load_plugins(char *, void* [])
+		void give_up_root_privileges(void)
+	removed unused commented out code
+
+* docs/PROTOKOLLE
+	"ping" and "ack" packets added to Quake2
+
+* plugins/libq2.c
+	answer "ping" packets
+	msg_out_length+1 in calloc() for query/ping packet msg_out
+		thx to valgrind
+	version number bumped up to 0.2
+
+* plugins/libq3.c
+	fixed snprintf() off-by-one bugs
+	msg_out_length+1 in calloc() for getservers packet msg_out
+		thx to valgrind
+
+2003-03-08	Andre' Schulz	<andre@malchen.de>
+* plugins/libq2.c
+	preliminary q2 plugin
+
+* plugins/libq3.c
+	substituted the "4" on lines 82 and 137 with q3_pkt_header_len
+	failing to reallocate the serverlist is now fatal
+	added Q3M_PROTOCOL for future use
+
+* masterserver.c
+	commented out INFO() messages in plugin_thread()
+	removed unused commented out code in plugin_thread(),
+		plugin_heartbeat_thread(), delete_server()
+	check realloc return value in delete_server()
+	check calloc return value in register_plugin()
+
+* masterserver.h
+	added protocol variable in masterserver_plugin struct for future use
+
+2003-03-03	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	when removing a dead server show its ip adress and port
+
+2003-03-02	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOKOLLE
+	more packet dumps
+
+2003-03-01	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOKOLLE
+	included packet dumps for better understanding
+
+2003-02-24	Andre' Schulz	<andre@malchen.de>
+* plugins/libexample.c
+	don't fill next and mutex variables in masterserver_plugin struct
+
+* plugins/libh2.c
+	don't fill next and mutex variables in masterserver_plugin struct
+
+* plugins/libq3.c
+	don't fill next and mutex variables in masterserver_plugin struct
+
+* masterserver.h
+	next and mutex variables moved down in masterserver_plugin struct
+	(they don't have to be declared in plugins anymore)
+
+* masterserver.c
+	init pthread mutex in masterserver_plugin struct in register_plugin()
+
+2003-02-21	Andre' Schulz	<andre@malchen.de>
+* plugins/libq3.c
+	reformat to 80 chars width
+	missed some fprintf()s; converted to fitting log macro
+	changed Q3_HEADER from preprocessor define to static char
+	created static char packet variables
+	some minor changes/fixes
+
+* plugins/libh2.c
+	deleted and recreated from the new libq3.c
+	small bugfixes
+
+* plugins/libexample.c
+	minor change to version info
+
+* masterserver.h
+	minor change to version info
+
+* README
+	minor changes
+
+* Makefile
+	change PREFIX to /usr
+
+* masterserver.c
+	forgot to set pointer to next entry in linked list =)
+	added cmdline option -p and --plugin-dir to configure plugin directory
+
+2003-02-20	Andre' Schulz	<andre@malchen.de>
+* plugins/libh2.c
+	copied code from libq3.c and customized it for heretic2
+
+* README
+	added qstat credits
+
+* docs/PROTOKOLLE
+	minor changes in quake2 and heretics sections
+
+2003-02-19	Andre' Schulz	<andre@malchen.de>
+* logging.h
+	s/SUBNAME/LOG_SUBNAME/
+
+* masterserver.c
+	s/SUBNAME/LOG_SUBNAME/
+
+* plugins/libq3.c
+	s/SUBNAME/LOG_SUBNAME/
+
+* plugins/libh2.c
+	s/SUBNAME/LOG_SUBNAME/
+
+* plugins/libexample.c
+	s/SUBNAME/LOG_SUBNAME/
+
+2003-02-08	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	using snprintf instead of sprintf
+
+* plugins/libq3.c
+	using snprintf instead of sprintf
+
+* README
+	logging code credit to Viktor
+
+* logging.c / logging.h
+	added to cvs
+
+2003-02-06	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	slight change to GPL disclaimer
+
+* logging.c
+	GPL disclaimer added
+
+* plugins/libexample.c
+	GPL disclaimer added
+
+* plugins/libh2.c
+	GPL disclaimer added
+
+* plugins/libq3.c
+	GPL disclaimer added
+
+2003-02-04	Andre' Schulz	<andre@malchen.de>
+* masterserver.h
+	MASTERSERVER_VERSION split up into:
+	MASTERSERVER_MAJOR_VERSION
+	MASTERSERVER_MINOR_VERSION
+
+* plugins/libq3.c
+	Q3M_PLUGIN_VERSION split up into:
+	Q3M_PLUGIN_VERSION_MAJOR
+	Q3M_PLUGIN_VERSION_MINOR
+
+* plugins/libh2.c
+	H2M_PLUGIN_VERSION split up into:
+	H2M_PLUGIN_VERSION_MAJOR
+	H2M_PLUGIN_VERSION_MINOR
+
+* plugins/libexample.c
+	EXAMPLE_PLUGIN_VERSION split up into:
+	EXAMPLE_PLUGIN_VERSION_MAJOR
+	EXAMPLE_PLUGIN_VERSION_MINOR
+
+	P.S.: string version defines are a pain in the ass
+
+2002-12-30	Andre' Schulz	<andre@malchen.de>
+* masterserver.h
+	added ERROR, PRINT and DEBUG defines
+
+2002-12-19	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOKOLLE
+	some corrections
+	quake2 section updated
+	unreal tournament section created
+	added a link to q2 net specs
+
+2002-12-03	Andre' Schulz	<andre@malchen.de>
+* masterserver.c:
+	daemonizing implemented
+	binding to specific interfaces implemented (and root privilege dropping)
+	catch opendir() errors
+	catch dlopen() errors
+
+* masterserver.h:
+	version number bumped up to 0.2
+
