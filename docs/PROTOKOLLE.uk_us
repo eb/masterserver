@@ -7,7 +7,7 @@ This document describes the protocols used by master servers.
 
 Unfortunately, this document is still chaotic and definitely incomplete.
  
-1. Quake3 protocol
+1. Quake3/STEF1 protocol
 	1.1. Masterserver
 		1.1.1. getservers
 		1.1.2. getserversResponse
@@ -25,14 +25,7 @@ Unfortunately, this document is still chaotic and definitely incomplete.
 		1.2.9. heartbeat
 		1.2.10 print
 
-2. Heretic2 protocol
-	2.1.1. shutdown
-	2.1.2. heartbeat
-	2.1.3. info
-	2.1.4. status
-	2.1.5. print
-
-3. Quake2 protocol
+2. Quake2/Heretic2 protocol
 	3.1. heartbeat
 	3.2. query
 	3.3. shutdown
@@ -48,7 +41,7 @@ Unfortunately, this document is still chaotic and definitely incomplete.
 	3.13. ping
 	3.14. ack
 
-4. Unreal Tournament protocol
+3. Unreal Tournament protocol
 	4.1. heartbeat
 	4.2. info
 	4.3. status
@@ -56,16 +49,31 @@ Unfortunately, this document is still chaotic and definitely incomplete.
 	4.5. HTTP traffic
 	4.6. Masterserver traffic
 
-5. Links
+4. Links
 
 
 --
 
-1. Quake3 protocol
-==================
+1. Quake3/STEF1 protocol
+========================
 
-Server port: UDP 27960
-Masterserver port: UDP 27950
+Q3 Server port: UDP 27960
+Q3 Master DNS name: master.quake3arena.com
+Q3 Master port: UDP 27950
+Q3 MOTD DNS name: update.quake3arena.com
+Q3 MOTD server port: UDP 27951
+Q3 auth server DNS name: authorize.quake3arena.com
+Q3 auth server port: UDP 27952
+
+EF Server port: UDP 
+EF Master DNS name: master.stef1.ravensoft.com
+EF Master port: UDP 27953
+EF MOTD DNS name: motd.stef1.ravensoft.com
+EF MOTD server port: UDP 27951
+EF auth server DNS name: authenticate.stef1.ravensoft.com
+EF auth server port: UDP 27952
+EF Gamespy Master: master.gamespy.com:27900
+
 Protocol marker: 0xff 0xff 0xff 0xff
 
 1.1. Masterserver
@@ -84,6 +92,7 @@ getservers		- command
 					Q3 1.30 == 66
 					Q3 1.31 == 67
 					Q3 1.32	== 68
+					STEF1 1.20 == 24
 empty full demo	- indicates which servers should be displayed. Can be omitted
 				  to get servers which are neither full nor empty.
 The following keywords are known to me:
@@ -104,6 +113,8 @@ includes only servers who have the variable "protocol" set to 66.
 -------------------------
 (Master -> Client)
 
+Quake3
+------
 0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 52 65   ÿÿÿÿgetserversRe
 0010  73 70 6f 6e 73 65 5c d9 d3 f8 cc fb e7 5c 18 f3   sponse\ÙÓøÌûç\.ó
 0020  b2 d2 6d 38 5c 51 62 7f cd 6d 38 5c cb d9 3f fa   ²Òm8\Qb.Ím8\ËÙ?ú
@@ -125,11 +136,26 @@ translates to:
 + 4			= 810 bytes ("\EOT")
 So every packet the ID Q3 master sends has a maximum of 810 bytes payload.
 
+STEF1
+-----
+0020  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 52 65   ÿÿÿÿgetserversRe
+0030  73 70 6f 6e 73 65 20 5c 38 32 64 37 38 32 31 63   sponse \82d7821c
+0040  36 64 33 62 5c 34 35 33 38 61 32 38 36 36 64 33   6d3b\4538a2866d3
+0050  61 5c 64 34 30 36 36 63 66 39 36 64 33 39 5c 34   a\d4066cf96d39\4
+0060  35 31 63 66 30 64 65 36 64 33 38 5c 34 35 33 39   51cf0de6d38\4539
+0070  38 34 34 64 36 64 5c 45 4f 54                     844d6d\EOT
+
+Looks like Q3 but it obviously isn't. At least not completely; the STEF1
+Master also sends the servers' IP and Port as blocks but they're encoded in
+hexadecimal. I'd like to know why Ravensoft did that ...
+
 
 1.1.3. getKeyAuthorize
 ----------------------
 (Client -> Master)
 
+Quake3
+------
 0000  ff ff ff ff 67 65 74 4b 65 79 41 75 74 68 6f 72   ÿÿÿÿgetKeyAuthor
 0010  69 7a 65 20 30 20 78 78 78 78 78 78 78 78 78 78   ize 0 xxxxxxxxxx
 0020  78 78 78 78 78 78                                 xxxxxx
@@ -138,15 +164,23 @@ The key consists of 16 characters out of [A-Za-z0-9].
 
 Note:
 ID's Q3 master server doesn't reply to the "getKeyAuthorize" command any more.
-Afaik the authorization has been suspended by ID.
 I read somewhere that the authorization is back online because of PunkBuster.
-FIXME: check if this is true
+
+STEF1
+-----
+0020  ff ff ff ff 67 65 74 4b 65 79 41 75 74 68 6f 72   ÿÿÿÿgetKeyAuthor
+0030  69 7a 65 20 39 39 39 20 78 78 78 78 78 78 78 78   ize 999 xxxxxxxx
+0040  78 78 78 78 78 78 78 78 78 78                     xxxxxxxxxx
+
+getKeyAuthorize packets are sent to authenticate.stef1.ravensoft.com:27952 UDP.
 
 
 1.1.4. getmotd
 --------------
 (Client -> Master)
 
+Quake3
+------
 0000  ff ff ff ff 67 65 74 6d 6f 74 64 20 22 5c 76 65   ÿÿÿÿgetmotd "\ve
 0010  72 73 69 6f 6e 5c 51 33 20 31 2e 33 32 62 20 6c   rsion\Q3 1.32b l
 0020  69 6e 75 78 2d 69 33 38 36 20 4e 6f 76 20 31 34   inux-i386 Nov 14
@@ -155,10 +189,30 @@ FIXME: check if this is true
 0050  63 68 61 6c 6c 65 6e 67 65 5c 32 31 31 30 35 34   challenge\211054
 0060  38 39 37 36 22 0a                                 8976".
 
-Q3 transmits the variables "version", "renderer" and "challenge".
+Q3 sends the variables "version", "renderer" and "challenge".
 
 Note:
 ID's Q3 master doesn't reply to "getmotd" any more. (ICMP Port Unreachable)
+getmotd packets are sent to update.quake3arena.com:27951 UDP.
+
+STEF1
+-----
+0000  ff ff ff ff 67 65 74 6d 6f 74 64 20 22 5c 63 68   ÿÿÿÿgetmotd "\ch
+0010  61 6c 6c 65 6e 67 65 5c 31 34 39 38 35 5c 76 65   allenge\14985\ve
+0020  72 73 69 6f 6e 5c 53 54 3a 56 20 48 4d 20 76 31   rsion\ST:V HM v1
+0030  2e 32 30 20 77 69 6e 2d 78 38 36 20 41 70 72 20   .20 win-x86 Apr 
+0040  31 37 20 32 30 30 31 5c 72 65 6e 64 65 72 65 72   17 2001\renderer
+0050  5c 47 65 46 6f 72 63 65 33 2f 41 47 50 2f 53 53   \GeForce3/AGP/SS
+0060  45 5c 63 70 75 74 79 70 65 5c 49 6e 74 65 6c 20   E\cputype\Intel 
+0070  50 65 6e 74 69 75 6d 20 49 49 49 5c 6d 68 7a 5c   Pentium III\mhz\
+0080  37 35 30 5c 6d 65 6d 6f 72 79 5c 35 31 31 5c 6a   750\memory\511\j
+0090  6f 79 73 74 69 63 6b 5c 30 5c 63 6f 6c 6f 72 62   oystick\0\colorb
+00a0  69 74 73 5c 33 32 22                              its\32"
+
+STEF1 sends the variables "challenge", "version", "renderer", "cputype",
+"memory", "joystick" and "colorbits". getmotd packets are sent to
+motd.stef1.ravensoft.com:27951 UDP.
+
 
 1.1.5. motd
 -----------

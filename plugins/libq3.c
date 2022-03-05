@@ -60,7 +60,7 @@ const char	q3_pkt_delimiter[]	= "\\";
 const char	q3_pkt_delimiter2[] = " ";
 const char	q3_pkt_delimiter3[]	= "\n";
 
-const char q3m_plugin_version[] = "0.7.1";
+const char q3m_plugin_version[] = "0.7.2";
 static int q3m_ports[] = { 27950, 27951 };
 
 // player info
@@ -149,6 +149,8 @@ process_heartbeat(char *packet)
 		}
 	}
 
+	INFO("heartbeat from %s:%d\n",
+			inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 	// if not, then add it to the list
 	if (server_dup == 0) {
 		q3m.list[q3m.num_servers].ip = q3m.client.sin_addr;
@@ -157,21 +159,18 @@ process_heartbeat(char *packet)
 		DEBUG("client port added\n");
 		q3m.list[q3m.num_servers].lastheartbeat = time(NULL);
 		DEBUG("client heartbeat timestamp added\n");
-		INFO("Heartbeat from %s:%u; added to server list\n",
-				inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 		DEBUG("this is server no.: %d | lastheartbeat: %d\n",
 				q3m.num_servers, q3m.list[q3m.num_servers].lastheartbeat);
 		// allocate memory for private data
 		q3m.list[q3m.num_servers].private_data = calloc(1, sizeof(q3m_private_data_t));
-		//memset(q3m.list[q3m.num_servers].private_data, 0, sizeof(q3m_private_data_t));
 
 		q3m.num_servers++;
 
 		DEBUG("reallocating server list (old size: %d -> new size: %d)\n",
 				q3m.num_servers * sizeof(serverlist_t),
 				(q3m.num_servers+1) * sizeof(serverlist_t));
-		if (q3m.num_servers > 0)
-			q3m.list = (serverlist_t *) realloc(q3m.list, ((q3m.num_servers+1)*sizeof(serverlist_t)));
+
+		q3m.list = (serverlist_t *) realloc(q3m.list, ((q3m.num_servers+1)*sizeof(serverlist_t)));
 		if (q3m.list == NULL) {
 			//WARNING("can't increase q3m.list size; out of memory!\n");
 			ERRORV("realloc() failed trying to get %d bytes!\n",
@@ -187,7 +186,7 @@ process_heartbeat(char *packet)
 		time_diff = time(NULL) - q3m.list[i].lastheartbeat;
 		// if time_diff is 0 the server has shutdown (most likely)
 		if (time_diff == 0) {
-			INFO("server %s:%u is shutting down. bye, bye. (time_diff %d)\n",
+			INFO("server %s:%u is shutting down (time_diff %d)\n",
 					inet_ntoa(q3m.list[i].ip), ntohs(q3m.list[i].port),
 					time_diff);
 			delete_server(&q3m, i);
@@ -195,8 +194,6 @@ process_heartbeat(char *packet)
 			return 2; // return "server-shutdown" code
 		} else {
 			// server is in already in our list so we just update the timestamp
-			INFO("heartbeat from %s:%d; already in server list; updating timestamp (time_diff %d)\n",
-					inet_ntoa(q3m.list[i].ip), ntohs(q3m.list[i].port), time_diff);
 			q3m.list[i].lastheartbeat = time(NULL);
 			server_dup = 0;
 		}
@@ -221,10 +218,11 @@ send_getstatus()
 		ERRORV("calloc() failed trying to get %d bytes!\n", sizeof(int));
 		return -2; // TODO: define retval for errors
 	}
-	DEBUG("allocated %d bytes for msg_out_length[]\n", 1*sizeof(int));
+	DEBUG("allocated %d bytes for msg_out_length[]\n", sizeof(int));
 
 	// q3m.msg_out_length[0] = q3_pkt_header_len + q3_pkt_getstatus_len;
-	q3m.msg_out_length[0] = q3_pkt_header_len + q3_pkt_getstatus_len + (int)(sizeof(int)*2.5)+1;
+	q3m.msg_out_length[0] = q3_pkt_header_len
+			+ q3_pkt_getstatus_len + (int)(sizeof(int)*2.5)+1;
 
 	// allocate the memory for the outgoing packet
 	q3m.msg_out = calloc(1, sizeof(char *));
@@ -381,7 +379,7 @@ process_getservers(char *packet)
 					(pkt_offset+7)*sizeof(char));
 			if (q3m.msg_out[q3m.num_msgs] == NULL) {
 				ERRORV("realloc() failed trying to get %d bytes!\n",
-						(q3_pkt_header_len+q3_pkt_getsrvrsp_len)*sizeof(char));
+						(pkt_offset+7)*sizeof(char));
 				return -2;
 			}
 
@@ -402,7 +400,7 @@ process_getservers(char *packet)
 			(pkt_offset+q3_pkt_footer_len+1)*sizeof(char));
 	if (q3m.msg_out[q3m.num_msgs] == NULL) {
 		ERRORV("realloc() failed trying to get %d bytes!\n",
-				(pkt_offset+q3_pkt_footer_len+1)*sizeof(char *));
+				(pkt_offset+q3_pkt_footer_len+1)*sizeof(char));
 		return -2;
 	}
 	memcpy(q3m.msg_out[q3m.num_msgs]+pkt_offset, q3_pkt_footer, q3_pkt_footer_len);
@@ -614,7 +612,7 @@ process_statusResponse(char *packet)
 
 		// parse player score
 		temp_end = strpbrk(temp_string, " ");
-		temp_plr = (char *) malloc(temp_end - temp_string + 1);
+		temp_plr = (char *) malloc(temp_end-temp_string+1);
 		if (temp_plr == NULL) {
 			ERRORV("malloc() failed trying to get %d bytes!\n",
 					temp_end-temp_string+1);
@@ -628,7 +626,7 @@ process_statusResponse(char *packet)
 		// parse player ping
 		temp_start = temp_end;
 		temp_end = strpbrk(temp_start+1, " ");
-		temp_plr = (char *) malloc(temp_end - temp_start);
+		temp_plr = (char *) malloc(temp_end-temp_start);
 		if (temp_plr == NULL) {
 			ERRORV("malloc() failed trying to get %d bytes!\n",
 					temp_end-temp_start);

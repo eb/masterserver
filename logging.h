@@ -6,10 +6,18 @@
 #define LOG_LEVEL_ERROR		2
 #define LOG_LEVEL_DEBUG		3
 
-#define INFO(fmt, args...)		log_write(LOG_LEVEL_INFO, LOG_SUBNAME, fmt, ##args);
-#define WARNING(fmt, args...)	log_write(LOG_LEVEL_WARNING, LOG_SUBNAME, fmt, ##args);
-#define ERROR(fmt)				log_write(LOG_LEVEL_ERROR, LOG_SUBNAME, "in %s near line %d: "fmt, __FILE__, __LINE__);
-#define ERRORV(fmt, args...)	log_write(LOG_LEVEL_ERROR, LOG_SUBNAME, "in %s near line %d: "fmt, __FILE__, __LINE__, ##args);
+#define INFO(fmt, args...) \
+		log_write(LOG_LEVEL_INFO, LOG_SUBNAME, fmt, ##args);
+	/*if (_log_level <= LOG_LEVEL_INFO) \*/
+#define WARNING(fmt, args...) \
+		log_write(LOG_LEVEL_WARNING, LOG_SUBNAME, fmt, ##args);
+	/*if (_log_level <= LOG_LEVEL_WARNING) \*/
+#define ERROR(fmt) \
+		log_write(LOG_LEVEL_ERROR, LOG_SUBNAME, "in %s near line %d: "fmt, __FILE__, __LINE__);
+	/*if (_log_level <= LOG_LEVEL_ERROR) \*/
+#define ERRORV(fmt, args...) \
+		log_write(LOG_LEVEL_ERROR, LOG_SUBNAME, "in %s near line %d: "fmt, __FILE__, __LINE__, ##args);
+	/*if (_log_level <= LOG_LEVEL_ERROR) \*/
 
 #ifdef DEBUG
 #undef DEBUG
@@ -20,6 +28,8 @@
 #endif
 
 #define LOG_SUBNAME "default"
+
+//extern int _log_level;
 
 extern int log_init(char *filename, char* progname);
 extern void log_write(int log_level, char *subname, char *fmt, ...);

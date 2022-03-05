@@ -23,11 +23,20 @@ Das Dokument ist leider noch etwas chaotisch und definitiv unvollständig.
 		1.2.10 print
 
 2. Heretic2 Protokoll
-	2.1.1. shutdown
-	2.1.2. heartbeat
-	2.1.3. info
-	2.1.4. status
-	2.1.5. print
+	2.1. heartbeat
+	2.2. query
+	2.3. shutdown
+	2.4. status
+	2.5. print
+	2.6. info
+	2.7. info
+	2.8. getchallenge
+	2.9. challenge
+	2.10. connect
+	2.11. client_connect
+	2.12. servers
+	2.13. ping
+	2.14. ack
 
 3. Quake2 Protokoll
 	3.1. heartbeat
@@ -45,27 +54,52 @@ Das Dokument ist leider noch etwas chaotisch und definitiv unvollständig.
 	3.13. ping
 	3.14. ack
 
-4. Unreal Tournament Protokoll
-	4.1. heartbeat
-	4.2. info
-	4.3. status
-	4.4. REPORTQUERY
-	4.5. HTTP Traffic
-	4.6. Master Server Traffic
+4. STV: Elite Force Protokoll
+	4.1. Master Server
+		4.1.1. getservers
+		4.1.2. getserversResponse
+		4.1.3. getKeyAuthorize
+		4.1.4. getmotd
+	4.2. Dedicated/Listen Server
+		4.2.1. getinfo
+		4.2.2. infoResponse
+		4.2.3. getstatus
+		4.2.4. statusResponse
+		4.2.5. getchallenge
+		4.2.6. challengeResponse
+		4.2.7. connect
+		4.2.8. connectResponse
+		4.2.9. heartbeat
+		4.2.10 print
+		4.2.11 heartstop
 
-5. Links
+5. Unreal Tournament Protokoll
+	5.1. heartbeat
+	5.2. info
+	5.3. status
+	5.4. REPORTQUERY
+	5.5. HTTP Traffic
+	5.6. Master Server Traffic
 
+6. QuakeWorld Protokoll
+
+7. Links
 
 --
 
 1. Quake3 Protokoll
-===================
+=========================
 
-Server Port: UDP 27960
-Master Server Port: UDP 27950
-Motd Server Port: UDP 27951
-Auth Server Port: UDP 27952
+Q3 Server port: UDP 27960
+Q3 Master DNS name: master.quake3arena.com
+Q3 Master port: UDP 27950
+Q3 MOTD DNS name: update.quake3arena.com
+Q3 MOTD server port: UDP 27951
+Q3 auth server DNS name: authorize.quake3arena.com
+Q3 auth server port: UDP 27952
+
 Protokoll Marker: 0xff 0xff 0xff 0xff
+
 
 1.1. Master Server
 ------------------
@@ -99,6 +133,7 @@ version vom ID Q3 Master verarbeitet wird. D.h. der Master gibt eine
 Serverliste zurück, welche nur Server mit "protocol" 66 enthält.
 getservers Pakete werden an master.quake3arena.com:27950 geschickt.
 
+
 1.1.2. getserversResponse
 -------------------------
 
@@ -108,7 +143,6 @@ getservers Pakete werden an master.quake3arena.com:27950 geschickt.
 0030  e3 00 5c 18 30 ad b3 6d 38 5c 44 44 97 a2 6d 38   ã.\.0­³m8\DD.¢m8
 0040  5c 18 a4 31 01 6d 38 5c c3 e6 b3 55 6d 38 5c d9   \.¤1.m8\Ãæ³Um8\Ù
 0050  24 72 82 4e bd 5c 45 4f 54                        $r.N½\EOT
-
 
 getserversResponse ist die Antwort des Masters auf ein "getservers" Paket.
 Nach "getserversResponse" folgen die Server in 6 byte Blöcken:
@@ -138,7 +172,7 @@ ID's Master Server antwortet auf getKeyAuthorize nicht mehr.
 Die Key Abfrage wurde seitens ID wohl abgeschaltet.
 Angeblich soll die Key Abfrage wieder eingeschaltet worden sein, wegen
 Punkbuster.
-getKeyAuthorize Pakete werden an authorize.quake3arena.com:27952 geschickt.
+getKeyAuthorize Pakete werden an authorize.quake3arena.com:27952 UDP geschickt.
 
 
 1.1.4. getmotd
@@ -158,7 +192,7 @@ Q3 übergibt standardmässig die Variablen version, renderer und challenge.
 Bemerkung:
 Der Q3 Client schickt das motd Paket an Port 27951, auf welchem kein Programm
 horcht. Man kriegt nur ein ICMP Destination Unreachable.
-getmotd Pakete werden an update.quake3arena.com:27951 geschickt.
+getmotd Pakete werden an update.quake3arena.com:27951 UDP geschickt.
 
 
 1.1.5. motd
@@ -186,6 +220,7 @@ Der Challenge Wert wird aus dem getmotd Paket geparst.
 0000  ff ff ff ff 67 65 74 69 6e 66 6f 0a               ÿÿÿÿgetinfo.
 
 Keine Parameter bekannt.
+
 
 1.2.2. infoResponse
 -------------------
@@ -368,6 +403,7 @@ Bemerkungen:
 Die Abfrage wurde mit qstat 2.4e ausgeführt, da der Q3 interne Serverbrowser
 nur getinfo benutzt.
 
+
 1.2.5. getchallenge
 -----------------
 (Client -> Server)
@@ -375,6 +411,7 @@ nur getinfo benutzt.
 0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65   ÿÿÿÿgetchallenge
 
 Keine Parameter.
+
 
 1.2.6. challengeResponse
 ----------------------
@@ -384,6 +421,7 @@ Keine Parameter.
 0010  70 6f 6e 73 65 20 39 36 31 31 36 36 35 31         ponse 96116651
 
 Die Zahl nach "challengeResponse" ist wahrscheinlich ein "signed 32bit integer".
+
 
 1.2.7. connect
 ------------
@@ -410,6 +448,7 @@ Die Zahl nach "challengeResponse" ist wahrscheinlich ein "signed 32bit integer".
 
 Nach "challengeResponse" schickt der Client ein Paket, dass wie dieses aussieht.
 
+
 1.2.8. connectResponse
 --------------------
 (Server -> Client)
@@ -418,6 +457,7 @@ Nach "challengeResponse" schickt der Client ein Paket, dass wie dieses aussieht.
 0010  6e 6e 65 63 74 52 65 73 70 6f 6e 73 65            nnectResponse   
 
 Keine Parameter.
+
 
 1.2.9. heartbeat
 --------------
@@ -440,6 +480,7 @@ Ich habe herausgefunden, dass auf ein "heartbeat" Paket vom Master ein
 "getstatus" Paket mit challenge folgt, womit der Master sich die Informationen
 (wie z.B. "protocol", etc.) über den Server holt.
 
+
 1.2.10 print
 ------------
 
@@ -455,23 +496,27 @@ Wird verwendet bei "Invalid Password", falscher Protokoll Version, etc.
 
 2. Heretic2 Protokoll
 =====================
+Heretic2 Server Port: UDP 28910
 
-Server Port: UDP 28910
-Master Server Port: UDP 28900
+Heretic2 Master IP: 209.98.56.7
+Heretic2 Master DNS name: master.ravensoft.com
+Heretic2 Master Server Port: UDP 28900
+
+Heretic2 Gamespy Master IP: 207.38.8.34
+Heretic2 Gamespy Master Port: UDP 27900
+
 Protokoll Marker: 0xff 0xff 0xff 0xff
 
 +set public 1
 public 1
 setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 Master Server)
 
-Heretic2 benutzt die selbe Sequenz am Anfang eines Paketes wie Quake3. (0xff 0xff 0xff 0xff)
-
 
 2.1.1. shutdown
 ---------------
 (Server -> Master)
 
-shutdown
+0000  ff ff ff ff 73 68 75 74 64 6f 77 6e                ÿÿÿÿshutdown
 
 Signalisiert, dass der Server heruntergefahren wird.
 
@@ -480,9 +525,62 @@ Signalisiert, dass der Server heruntergefahren wird.
 ----------------
 (Server -> Master)
 
-heartbeat \var\val\var\val...
+Gamespy Heartbeat Paket:
 
-Nach "heartbeat" folgt ein CRLF (Hex 0x0A) und es werden einige Variablen und deren Wert ausgegeben, nach welchen wiederrum ein CRLF (Hex 0x0A) folgt.
+0000  5c 68 65 61 72 74 62 65 61 74 5c 32 38 39 31 31    \heartbeat\28911
+0010  5c 67 61 6d 65 6e 61 6d 65 5c 68 65 72 65 74 69    \gamename\hereti
+0020  63 32                                              c2
+
+
+H2 Master Heartbeat Paket, keine Spieler:
+
+0000  ff ff ff ff 68 65 61 72 74 62 65 61 74 0a 5c 6d    ÿÿÿÿheartbeat.\m
+0010  61 70 6e 61 6d 65 5c 64 6d 63 69 74 61 64 65 6c    apname\dmcitadel
+0020  5c 6e 6f 6d 6f 6e 73 74 65 72 73 5c 30 5c 67 61    \nomonsters\0\ga
+0030  6d 65 64 61 74 65 5c 41 75 67 20 20 38 20 32 30    medate\Aug  8 20
+0040  30 31 5c 67 61 6d 65 6e 61 6d 65 5c 48 65 72 65    01\gamename\Here
+0050  74 69 63 32 76 31 36 5c 6d 61 78 63 6c 69 65 6e    tic2v16\maxclien
+0060  74 73 5c 38 5c 70 72 6f 74 6f 63 6f 6c 5c 35 31    ts\8\protocol\51
+0070  5c 63 68 65 61 74 73 5c 30 5c 74 69 6d 65 6c 69    \cheats\0\timeli
+0080  6d 69 74 5c 30 5c 66 72 61 67 6c 69 6d 69 74 5c    mit\0\fraglimit\
+0090  30 5c 64 6d 66 6c 61 67 73 5c 33 32 37 36 38 5c    0\dmflags\32768\
+00a0  64 65 61 74 68 6d 61 74 63 68 5c 31 5c 76 65 72    deathmatch\1\ver
+00b0  73 69 6f 6e 5c 31 2e 30 36 61 2e 30 31 2e 30 35    sion\1.06a.01.05
+00c0  30 34 2e 30 31 3a 20 20 78 38 36 20 41 75 67 20    04.01:  x86 Aug 
+00d0  20 38 20 32 30 30 31 20 52 45 4c 45 41 53 45 5c     8 2001 RELEASE\
+00e0  61 64 76 61 6e 63 65 64 73 74 61 66 66 5c 31 5c    advancedstaff\1\
+00f0  68 6f 73 74 6e 61 6d 65 5c 48 75 65 68 6e 65 72    hostname\Huehner
+0100  66 61 72 6d 5c 75 73 65 72 64 69 72 5c 2f 68 6f    farm\userdir\/ho
+0110  6d 65 2f 61 6e 64 72 65 2f 2e 6c 6f 6b 69 2f 68    me/andre/.loki/h
+0120  65 72 65 74 69 63 32 0a                            eretic2.
+
+H2 Master Heartbeat Paket, 1 Spieler:
+
+0000  ff ff ff ff 68 65 61 72 74 62 65 61 74 0a 5c 6d    ÿÿÿÿheartbeat.\m
+0010  61 70 6e 61 6d 65 5c 64 6d 74 6f 77 65 72 5c 6e    apname\dmtower\n
+0020  6f 6d 6f 6e 73 74 65 72 73 5c 30 5c 67 61 6d 65    omonsters\0\game
+0030  64 61 74 65 5c 41 75 67 20 20 38 20 32 30 30 31    date\Aug  8 2001
+0040  5c 67 61 6d 65 6e 61 6d 65 5c 48 65 72 65 74 69    \gamename\Hereti
+0050  63 32 76 31 36 5c 6d 61 78 63 6c 69 65 6e 74 73    c2v16\maxclients
+0060  5c 38 5c 70 72 6f 74 6f 63 6f 6c 5c 35 31 5c 63    \8\protocol\51\c
+0070  68 65 61 74 73 5c 30 5c 74 69 6d 65 6c 69 6d 69    heats\0\timelimi
+0080  74 5c 30 5c 66 72 61 67 6c 69 6d 69 74 5c 30 5c    t\0\fraglimit\0\
+0090  64 6d 66 6c 61 67 73 5c 33 32 37 36 38 5c 64 65    dmflags\32768\de
+00a0  61 74 68 6d 61 74 63 68 5c 31 5c 76 65 72 73 69    athmatch\1\versi
+00b0  6f 6e 5c 31 2e 30 36 61 2e 30 31 2e 30 35 30 34    on\1.06a.01.0504
+00c0  2e 30 31 3a 20 20 78 38 36 20 41 75 67 20 20 38    .01:  x86 Aug  8
+00d0  20 32 30 30 31 20 52 45 4c 45 41 53 45 5c 61 64     2001 RELEASE\ad
+00e0  76 61 6e 63 65 64 73 74 61 66 66 5c 31 5c 68 6f    vancedstaff\1\ho
+00f0  73 74 6e 61 6d 65 5c 48 75 65 68 6e 65 72 66 61    stname\Huehnerfa
+0100  72 6d 5c 75 73 65 72 64 69 72 5c 2f 68 6f 6d 65    rm\userdir\/home
+0110  2f 61 6e 64 72 65 2f 2e 6c 6f 6b 69 2f 68 65 72    /andre/.loki/her
+0120  65 74 69 63 32 0a 2d 32 20 31 37 20 22 43 68 69    etic2.-2 17 "Chi
+0130  63 6b 65 6e 4d 61 6e 22 0a                         ckenMan".
+
+
+Nach "heartbeat" folgt ein "\n" (Hex 0x0A) und es werden einige Variablen,
+sowie deren Wert ausgegeben. Der Block Variablen Block endet mit einem
+"\n" (Hex 0x0A).
 Getrennt werden die Werte durch "\" (Hex 0x5C).
 Die Werte die ausgegeben werden:
 mapname
@@ -494,45 +592,81 @@ protocol
 cheats
 timelimit
 fraglimit
-advancedstaff
 dmflags
 deathmatch
 version
+advancedstaff
 hostname
 userdir
+
+Nach dem Variablen Block folgen, sofern vorhanden, die Spieler, welche gerade
+auf dem Server sind. Diese sind wieder in Blöcke aufgeteilt welche Frags,
+Ping und Nickname enthalten. Getrennt sind die Blöcke durch "\n" (Hex 0x0A).
+Innerhalb eines Blocks sind die Informationen durch " " (Hex 0x20) getrennt.
+Heartbeats werden nach jedem Map Wechsel oder alle 300 Sekunden geschickt.
 
 
 2.1.3. info
 -----------
 (Client -> Server)
 
-info 51
+Broadcast Paket:
+----------------
+0000  ff ff ff ff 69 6e 66 6f 20 35 31                   ÿÿÿÿinfo 51
+
+Antwort Paket:
+--------------
+0000  ff ff ff ff 69 6e 66 6f 0a 44 69 76 69 6e 65 20    ÿÿÿÿinfo.Divine 
+0010  52 65 66 6c 65 63 74 69 6f 6e 20 5b 42 6c 61 64    Reflection [Blad
+0020  65 6d 61 74 63 68 5d 0a 20 20 20 67 74 6f 6d 62    ematch].   gtomb
+0030  20 20 30 2f 31 36 0a                                 0/16.
 
 "info" wird verwendet wenn man lokal im LAN einen H2 Server sucht.
-Der Client schickt ein Paket mit "info 51" an 255.255.255.255.
-51 ist die Protokoll Version.
+Der Client schickt ein Paket "info 51" an 255.255.255.255:28910.
+51 ist die Protokoll Version. Die Server mit der passenden Protokollversion
+antworten mit einem "info" Paket welches die Variable "hostname", "mapname"
+und die Anzahl der Spieler, sowie max. Zahl der Spieler enthält. Die
+einzelnen Blöcke sind durch "\n" (Hex 0x0A) und " " (Hex 0x20) getrennt.
 
 
 2.1.4. status
------------
+-------------
 (Client -> Server)
 
-status
-
-Antwort: print \var\val\...
+0000  ff ff ff ff 73 74 61 74 75 73 0a                   ÿÿÿÿstatus.
 
 qstat schickt an H2 Server "status" um deren Informationen zu bekommen.
 Die Server antworten in der Form, welche in "print" beschrieben wird.
 
 
 2.1.5. print
-----------
+------------
 (Server -> Client)
 
-print \var\val\...
+0000  ff ff ff ff 70 72 69 6e 74 0a 5c 6d 61 70 6e 61    ÿÿÿÿprint.\mapna
+0010  6d 65 5c 67 64 6f 6d 65 5c 6e 6f 6d 6f 6e 73 74    me\gdome\nomonst
+0020  65 72 73 5c 30 5c 67 61 6d 65 64 61 74 65 5c 4f    ers\0\gamedate\O
+0030  63 74 20 32 31 20 32 30 30 33 5c 67 61 6d 65 6e    ct 21 2003\gamen
+0040  61 6d 65 5c 48 65 72 65 74 69 63 32 76 31 36 5c    ame\Heretic2v16\
+0050  67 61 6d 65 64 69 72 5c 74 6d 6f 64 5c 6d 61 78    gamedir\tmod\max
+0060  63 6c 69 65 6e 74 73 5c 31 36 5c 70 72 6f 74 6f    clients\16\proto
+0070  63 6f 6c 5c 35 31 5c 63 68 65 61 74 73 5c 30 5c    col\51\cheats\0\
+0080  74 69 6d 65 6c 69 6d 69 74 5c 34 30 5c 66 72 61    timelimit\40\fra
+0090  67 6c 69 6d 69 74 5c 32 30 5c 61 64 76 61 6e 63    glimit\20\advanc
+00a0  65 64 73 74 61 66 66 5c 31 5c 64 6d 66 6c 61 67    edstaff\1\dmflag
+00b0  73 5c 33 32 37 38 34 5c 64 65 61 74 68 6d 61 74    s\32784\deathmat
+00c0  63 68 5c 31 5c 76 65 72 73 69 6f 6e 5c 31 2e 30    ch\1\version\1.0
+00d0  36 61 2e 30 31 2e 30 35 30 34 2e 30 31 3a 20 20    6a.01.0504.01:  
+00e0  78 38 36 20 41 75 67 20 20 38 20 32 30 30 31 20    x86 Aug  8 2001 
+00f0  52 45 4c 45 41 53 45 5c 68 6f 73 74 6e 61 6d 65    RELEASE\hostname
+0100  5c 44 69 76 69 6e 65 20 52 65 66 6c 65 63 74 69    \Divine Reflecti
+0110  6f 6e 20 5b 42 6c 61 64 65 6d 61 74 63 68 5d 5c    on [Bladematch]\
+0120  75 73 65 72 64 69 72 5c 2f 68 6f 6d 65 2f 68 65    userdir\/home/he
+0130  72 65 74 69 63 32 2f 2e 6c 6f 6b 69 2f 68 65 72    retic2/.loki/her
+0140  65 74 69 63 32 5c 67 61 6d 65 5c 74 6d 6f 64 0a    etic2\game\tmod.
 
-"print" ist die Antwort auf "status", und gibt Informationen über das laufende Spiel auf dem Server zurück.
-Trenner ist "\". (Hex 0x5C)
+"print" ist die Antwort auf "status", und gibt Informationen über das laufende
+Spiel auf dem Server zurück. Trenner ist "\". (Hex 0x5C)
 Hier eine Liste der Variablen die der Server schickt:
 mapname
 nomonsters
@@ -554,13 +688,71 @@ game
 "game" scheint nur aufzutauchen falls es gesetzt ist.
 
 
+2.1.6. getchallenge
+-------------------
+(Client -> Server)
+
+0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65    ÿÿÿÿgetchallenge
+0010  0a                                                 .     
+
+"getchallenge" ist der erste Schritt beim Aufbau einer Verbindung zu einem
+Heretic2 Server.
+
+
+2.1.7. challenge
+----------------
+(Server -> Client)
+
+0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 20 32 30    ÿÿÿÿchallenge 20
+0010  38 30 30 36 37 32 33                               8006723
+
+"challenge" ist die Antwort des Servers auf "getchallenge". Die Nummer ist
+wahrscheinlich ein 32bit Integer mit Vorzeichen.
+
+
+2.1.8. connect
+--------------
+(Client -> Server)
+
+0000  ff ff ff ff 63 6f 6e 6e 65 63 74 20 35 31 20 35    ÿÿÿÿconnect 51 5
+0010  36 34 20 32 30 38 30 30 36 37 32 33 20 22 5c 61    64 208006723 "\a
+0020  75 74 6f 77 65 61 70 6f 6e 5c 30 5c 6e 61 6d 65    utoweapon\0\name
+0030  5c 43 68 69 63 6b 65 6e 4d 61 6e 5c 73 6b 69 6e    \ChickenMan\skin
+0040  5c 6d 61 6c 65 2f 52 6f 67 75 65 5c 72 61 74 65    \male/Rogue\rate
+0050  5c 32 35 30 30 30 5c 6d 73 67 5c 31 5c 66 6f 76    \25000\msg\1\fov
+0060  5c 37 35 2e 30 22 0a                               \75.0".
+
+"connect" ist der dritte Schritt des Verbindungsaufbaus. Die Bedeutung der 2
+Zahlen nach "connect" ist mir unbekannt. Die dritte Zahl ist die "challenge"
+Nummer aus dem "challenge" Paket. Danach folgen Informationen über den Client.
+
+
+2.1.9. client_connect
+---------------------
+(Server -> Client)
+
+0000  ff ff ff ff 63 6c 69 65 6e 74 5f 63 6f 6e 6e 65    ÿÿÿÿclient_conne
+0010  63 74                                              ct
+
+"client_connect" ist die Antwort des Servers auf "connect".
+
+
+2.1.10. ping
+------------
+(Server -> Master)
+
+0000  ff ff ff ff 70 69 6e 67                            ÿÿÿÿping
+
+
 --
 
 3. Quake2 Protokoll
-===================
+============================
 
-Server Port: UDP 27910
-Master Server Port: UDP 27900
+Quake2 Server Port: UDP 27910
+Quake2 Master IP: 192.246.40.37
+Quake2 Master Server Port: UDP 27900
+
 +set public 1
 public 1
 setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 Master Server)
@@ -598,6 +790,7 @@ Warum die Konsolen Variablen mitgeschickt werden, wüsste ich auch gerne.
 0000  71 75 65 72 79 0a 00                              query..
 
 Fordert die Serverliste vom Master an.
+
 
 3.3. shutdown
 -------------
@@ -713,6 +906,7 @@ Client broadcastet ein solches Paket um andere Server zu finden.
 
 Ein "Challenge" vom Server anfordern.
 
+
 3.9. challenge
 --------------
 (Server -> Client)
@@ -737,14 +931,12 @@ Antwort auf ein "getchallenge" Paket.
 0070  30 22 0a                                          0".   
 
 
-
 3.11. client_connect
 --------------------
 (Server -> Client)
 
 0000  ff ff ff ff 63 6c 69 65 6e 74 5f 63 6f 6e 6e 65   ÿÿÿÿclient_conne
 0010  63 74                                             ct    
-
 
 
 3.12. servers
@@ -786,10 +978,284 @@ Wird beim ausführen von "setmaster" in der Console geschickt.
 
 Antwort auf "ping".
 
+--
+
+4. STV: Elite Force Protokoll
+=============================
+
+EF Server port: UDP 27960
+EF Master DNS name: master.stef1.ravensoft.com
+EF Master port: UDP 27953
+EF MOTD DNS name: motd.stef1.ravensoft.com
+EF MOTD server port: UDP 27951
+EF auth server DNS name: authenticate.stef1.ravensoft.com
+EF auth server port: UDP 27952
+
+Protokoll Marker: 0xff 0xff 0xff 0xff
+
+
+4.1. Master Server
+------------------
+
+4.1.1. getservers
+-----------------
+(Client -> Master)
+
+0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 20 32   ÿÿÿÿgetservers 2
+0010  34 20 65 6d 70 74 79 20 66 75 6c 6c               4 empty full
+
+getservers	- Befehl
+24			- Protokollversion
+				STEF1 1.20 == 24
+empty full	- Welche Server angezeigt werden sollen. Kann auch weggelassen
+			  werden um server zu bekommen, die weder voll noch leer sind.
+Folgende Schlüsselwörter sind mir bekannt:
+	empty - leere Server (keine Playerslots belegt)
+	full - volle Server (alle Playerslots belegt, bis auf die private Slots)
+	ffa - Free For All Server
+	team - Team Deathmatch
+	tourney - Tournament (1v1) Server
+	ctf - Capture the Flag Server
+
+getservers Pakete werden an master.stef1.ravensoft.com:27953 geschickt.
+
+
+4.1.2. getserversResponse
+-------------------------
+
+0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 52 65   ÿÿÿÿgetserversRe
+0010  73 70 6f 6e 73 65 20 5c 38 32 64 37 38 32 31 63   sponse \82d7821c
+0020  36 64 33 62 5c 34 35 33 38 61 32 38 36 36 64 33   6d3b\4538a2866d3
+0030  61 5c 64 34 30 36 36 63 66 39 36 64 33 39 5c 34   a\d4066cf96d39\4
+0040  35 31 63 66 30 64 65 36 64 33 38 5c 34 35 33 39   51cf0de6d38\4539
+0050  38 34 34 64 36 64 5c 45 4f 54                     844d6d\EOT
+
+Sieht aus wie bei Q3 isses aber offensichtlich nich. Zumindest nicht ganz
+der STEF1 Master schickt IP und Port der Server zwar auch noch als Blöcke
+aber diese sind Hexadezimal kodiert. Möchte mal wissen warum Ravensoft das
+gemacht hat ...
+
+
+4.1.3. getKeyAuthorize
+----------------------
+(Client -> Master)
+
+STEF1
+-----
+0000  ff ff ff ff 67 65 74 4b 65 79 41 75 74 68 6f 72   ÿÿÿÿgetKeyAuthor
+0010  69 7a 65 20 39 39 39 20 78 78 78 78 78 78 78 78   ize 999 xxxxxxxx
+0020  78 78 78 78 78 78 78 78 78 78                     xxxxxxxxxx
+
+getKeyAuthorize Pakete werden an authenticate.stef1.ravensoft.com:27952 UDP
+geschickt.
+
+
+4.1.4. getmotd
+--------------
+(Client -> Master)
+
+0000  ff ff ff ff 67 65 74 6d 6f 74 64 20 22 5c 63 68   ÿÿÿÿgetmotd "\ch
+0010  61 6c 6c 65 6e 67 65 5c 31 34 39 38 35 5c 76 65   allenge\14985\ve
+0020  72 73 69 6f 6e 5c 53 54 3a 56 20 48 4d 20 76 31   rsion\ST:V HM v1
+0030  2e 32 30 20 77 69 6e 2d 78 38 36 20 41 70 72 20   .20 win-x86 Apr 
+0040  31 37 20 32 30 30 31 5c 72 65 6e 64 65 72 65 72   17 2001\renderer
+0050  5c 47 65 46 6f 72 63 65 33 2f 41 47 50 2f 53 53   \GeForce3/AGP/SS
+0060  45 5c 63 70 75 74 79 70 65 5c 49 6e 74 65 6c 20   E\cputype\Intel 
+0070  50 65 6e 74 69 75 6d 20 49 49 49 5c 6d 68 7a 5c   Pentium III\mhz\
+0080  37 35 30 5c 6d 65 6d 6f 72 79 5c 35 31 31 5c 6a   750\memory\511\j
+0090  6f 79 73 74 69 63 6b 5c 30 5c 63 6f 6c 6f 72 62   oystick\0\colorb
+00a0  69 74 73 5c 33 32 22                              its\32"
+
+STEF1 übergibt challenge, version, renderer, cputype, memory, joystick und
+colorbits. getmotd Pakete werden an motd.stef1.ravensoft.com:27951 UDP
+geschickt.
+
+
+4.1.5. motd
+-----------
+(Master -> Client)
+
+0000  ff ff ff ff 6d 6f 74 64 20 22 5c 63 68 61 6c 6c   ÿÿÿÿmotd "\chall
+0010  65 6e 67 65 5c 31 34 39 38 35 5c 6d 6f 74 64 5c   enge\14985\motd\
+0020  48 6f 6c 6f 6d 61 74 63 68 65 72 20 23 33 34 30   Holomatcher #340
+0030  36 37 20 6f 6e 6c 69 6e 65 2e 22                  67 online."
+
+Der Challenge Wert wird aus dem getmotd Paket geparst.
+
+
+4.2. Dedicated/Listen Server
+----------------------------
+
+4.2.1. getinfo
+--------------
+(Client -> Server)
+
+0000  ff ff ff ff 67 65 74 69 6e 66 6f 0a               ÿÿÿÿgetinfo.
+
+Keine Parameter bekannt.
+
+4.2.2. infoResponse
+-------------------
+
+TODO: stef1 infoResponse paket
+
+"infoResponse" ist die Antwort des Servers auf ein "getinfo" Paket.
+Ab "infoResponse" gibt der Server zuerst die Konsolen Variable und dann
+deren Wert auf dem Server zurück. Trennzeichen ist "\".
+
+Bemerkung:
+Der Server gibt bei getinfo/infoResponse nur wenige Variablen zurück:
+punkbuster
+pure
+gametype
+sv_maxclients
+clients
+mapname
+hostname
+protocol
+
+Der 1.30 Server gibt dazu noch "sv_allowAnonymous" aus, exklusive "punkbuster".
+
+Um andere Server in einem _nicht_ gerouteten LAN zu finden, schickt Q3 ein
+"getinfo" Paket nach 255.255.255.255:[27960-27963].
+Die Server antworten dann und schon hat man eine Liste der Server im Netzwerk.
+
+getinfo wird vieleicht vom Master Server benutzt um festzustellen,
+ob ein Server voll, leer oder belegt ist, um die getservers Anfrage von 
+Clients richtig zu beantworten.
+
+
+4.2.3. getstatus
+--------------
+(Client -> Server)
+
+0000  ff ff ff ff 67 65 74 73 74 61 74 75 73 0a         ÿÿÿÿgetstatus.
+
+0000  ff ff ff ff 67 65	74 73 74 61 74 75 73 20 30 31   ÿÿÿÿgetstatus 10
+0010  36 31 38 32 39 35 34 37 37 32 33                  61829547723
+
+getstatus ist eine ausführlichere Version von getinfo und wird vom Masterserver
+nach jedem heartbeat geschickt.
+Optionaler Parameter ist ein challenge Wert. Der Parameter wird meines Wissens
+nur vom Masterserver benutzt.
+
+
+4.2.4. statusResponse
+---------------------
+
+TODO: stef1 statusResponse paket
+
+statusResponse ist die Antwort des Servers auf getstatus.
+Ab statusResponse gibt der Server zuerst den Namen der Konsolenvariable und
+dann deren Wert zurück. Trennzeichen ist "\".
+Nach den Variablen kommt ASCII Hex 0x0A und ab dann die Spieler Infos.
+Die Spieler Infos sind durch Leerzeichen getrennt und tauchen in Blöcken auf.
+<anzahlfrags> <ping> "<nickname>"
+Diese Blöcke sind wiederrum durch ASCII Hex 0x0A getrennt.
+Am Ende des Pakets steht ASCII Hex 0x0A.
+
+Bemerkungen:
+Die Abfrage wurde mit qstat 2.4e ausgeführt, da der Q3 interne Serverbrowser
+nur getinfo benutzt.
+
+
+4.2.5. getchallenge
+-----------------
+(Client -> Server)
+
+0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65   ÿÿÿÿgetchallenge
+
+Keine Parameter.
+
+
+4.2.6. challengeResponse
+----------------------
+(Server -> Client)
+
+0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 52 65 73   ÿÿÿÿchallengeRes
+0010  70 6f 6e 73 65 20 39 36 31 31 36 36 35 31         ponse 96116651
+
+Die Zahl nach "challengeResponse" ist wahrscheinlich ein "signed 32bit integer".
+
+
+4.2.7. connect
+--------------
+(Client -> Server)
+
+0000  ff ff ff ff 63 6f 6e 6e 65 63 74 20 01 53 44 74   ÿÿÿÿconnect .SDt
+0010  30 8e 05 0c c7 26 c3 14 ec 8e f9 67 70 1a 36 c1   0...Ç&Ã.ì.ùgp.6Á
+0020  48 f9 09 2b 72 38 3a 0e 83 bd e2 54 b8 44 5b 61   Hù.+r8:..½âT¸D[a
+0030  49 d7 95 83 6e e8 32 1c 7d 93 d1 67 09 d7 82 a5   I×..nè2.}.Ñg.×.¥
+0040  c5 24 ad 43 d0 c0 20 d5 88 70 44 05 cc 14 61 5e   Å$­CÐÀ Õ.pD.Ì.a^
+0050  e1 cf 92 de 0c 31 e0 d4 00 a6 39 61 7f e4 1e 84   áÏ.Þ.1àÔ.¦9a.ä..
+0060  ce 69 74 af e7 19 30 9f ac 58 f3 18 cd 03 ce 02   Îit¯ç.0.¬Xó.Í.Î.
+0070  cf 44 6e 59 d6 d3 41 3d 9e 77 6c 5f aa 43 f1 08   ÏDnYÖÓA=.wl_ªCñ.
+0080  1c d4 35 e9 a5 6c bc fe fd fd 9e e5 9f e2 87 8f   .Ô5é¥l¼þýý.å.â..
+0090  9e 6d d7 34 e2 e8 39 38 e8 97 87 61 66 4d 08 6b   .m×4âè98è..afM.k
+00a0  68 2b 5b 0b 71 e8 6e df f3 ef 36 3e f7 31 cb fa   h+[.qènßóï6>÷1Ëú
+00b0  05 78 1c b5 8d 20 e6 6a 9c 9d d5 8b 8b c1 22 6a   .x.µ. æj..Õ..Á"j
+00c0  d9 47 4f 74 e0 f9 be bb d1 40 22 d3 f2 0d a8 fe   ÙGOtàù¾»Ñ@"Óò.¨þ
+00d0  6f 3f d4 60 1b 76 14 91 95 59 d6 57 f8 0e 82 a7   o?Ô`.v...YÖWø..§
+00e0  75 31 9c 6f 8b be 15 70 9d f5 4b 83 6d 58 2f ce   u1.o.¾.p.õK.mX/Î
+00f0  3a bf de a7 9e bf 34 86 75 56 30 96 c3 7e 2f e9   :¿Þ§.¿4.uV0.Ã~/é
+0100  61 e1 61 52 34 8e 6b 9e c2 cc 41 8c e1 48 96 d5   aáaR4.k.ÂÌA.áH.Õ
+0110  91 8b db 66 18 19 13 fc e8 00                     ..Ûf...üè.
+
+Nach "challengeResponse" schickt der Client ein Paket, dass wie dieses aussieht.
+
+
+4.2.8. connectResponse
+----------------------
+(Server -> Client)
+
+0000  00 01 6d 38 6d 38 00 1b e1 3e ff ff ff ff 63 6f   ..m8m8..á>ÿÿÿÿco
+0010  6e 6e 65 63 74 52 65 73 70 6f 6e 73 65            nnectResponse   
+
+Keine Parameter.
+
+
+4.2.9. heartbeat
+----------------
+(Server -> Master)
+
+0000  ff ff ff ff 5c 68 65 61 72 74 62 65 61 74 5c 32   ÿÿÿÿ\heartbeat\2
+0010  37 39 36 30 5c 67 61 6d 65 6e 61 6d 65 5c 53 54   7960\gamename\ST
+0020  45 46 31 5c                                       EF1\
+
+Sieht auch fast wie ein Q3 heartbeat aus abgesehen von den zusätzlichen
+Trennzeichen und der gamename Variable. Der Wert nach Heartbeat ist der Port
+auf welchem der STEF1 Server läuft.
+Auf den ersten Heartbeat schickt der Master ein getchallenge und ein getstatus
+Paket mit challenge. Auf weitere Heartbeats vom selben Server schickt der
+Master abwechselnd ein getstatus mit challenge und ein getinfo mit challenge ...
+
+
+4.2.10 print
+------------
+
+0000  ff ff ff ff 70 72 69 6e 74 0a 53 65 72 76 65 72   ÿÿÿÿprint.Server
+0010  20 75 73 65 73 20 70 72 6f 74 6f 63 6f 6c 20 76    uses protocol v
+0020  65 72 73 69 6f 6e 20 36 36 2e 0a                  ersion 66..
+
+Mit einem "print" Paket kann der Server den Client den Text nach "print"
+anzeigen lassen.
+Wird verwendet bei "Invalid Password", falscher Protokoll Version, etc.
+
+
+4.2.11 heartstop
+----------------
+
+0000  ff ff ff ff 5c 68 65 61 72 74 73 74 6f 70 5c 32   ÿÿÿÿ\heartstop\2
+0010  37 39 36 30 5c 67 61 6d 65 6e 61 6d 65 5c 53 54   7960\gamename\ST
+0020  45 46 31 5c                                       EF1\
+
+Wenn der Server beendet wird schickt dieser ein heartstop Paket.
+
 
 --
 
-4. Unreal Tournament Protokoll
+
+5. Unreal Tournament Protokoll
 ==============================
 
 Server Port: UDP 7778
@@ -800,7 +1266,7 @@ Die Form ist immer gleich.
 Es werden Variablen und Werte gesendet die der Form:
 \variable\wert\variable\wert\...
 
-4.1. heartbeat
+5.1. heartbeat
 --------------
 (Server -> Master)
 
@@ -821,7 +1287,7 @@ Pakete für Gamespy Master Server:
 Die Optionen haben dieselbe Bedeutung wie bei den Heartbeat Paketen für
 Epic Master Server.
 
-4.2. info
+5.2. info
 ---------
 (Client -> Server)
 
@@ -837,7 +1303,7 @@ Antwort auf "\info\" ist ein Paket das folgendermassen aussieht:
 \hostname\jolt.co.uk - Last Man Standing [Anticamper] (02)\hostport\7867\maptitle\Morpheus\mapname\DM-Morpheus\gametype\LastManStanding\numplayers\0\maxplayers\10\gamemode\openplaying\gamever\436\minnetver\400\worldlog\false\wantworldlog\false\queryid\89.1\final\
 
 
-4.3. status
+5.3. status
 -----------
 (Client -> Server)
 
@@ -852,10 +1318,8 @@ Antwort Paket sieht folgendermassen aus:
 
 \hostname\[CSHP] UTASSAULT.thegamebox.org\hostport\7777\maptitle\Operation Desertstorm\mapname\AS-Desertstorm\gametype\Assault\numplayers\0\maxplayers\12\gamemode\openplaying\gamever\436\minnetver\432\worldlog\true\wantworldlog\true\queryid\91.1\final\g\true\wantworldlog\true\queryid\23.1\final\istenserver\False\password\False\timelimit\0\fraglimit\10\minplayers\0\changelevels\True\tournament\False\gamestyle\Hardcore\AdminName\Resonate / Bry\AdminEMail\resonate@jolt.co.uk\player_0\`Black_Panache\frags_0\0\ping_0\ 140\team_0\0\mesh_0\Spectator\skin_0\None\face_0\\ngsecret_0\false\player_1\master\frags_1\5\ping_1\ 75\team_1\255\mesh_1\Male Soldier\skin_1\SoldierSkins.hkil\face_1\SoldierSkins.matrix\ngsecret_1\true\player_2\1nf3rn0\frags_2\0\ping_2\ 63\team_2\255\mesh_2\Male Commando\skin_2\CommandoSkins.goth\face_2\CommandoSkins.Kragoth\ngsecret_2\false\player_3\AnimeE\frags_3\4\ping_3\ 105\team_3\255\mesh_3\Male Soldier\skin_3\SoldierSkins.Gard\face_3\SoldierSkins.Von\ngsecret_3\true\queryid\59.1\final\
 
-FIXME: ein paar erklärende Worte schreiben
 
-
-4.4. REPORTQUERY
+5.4. REPORTQUERY
 ----------------
 (Client -> Server)
 
@@ -864,7 +1328,7 @@ REPORTQUERY
 Ein Broadcast vom Client auf die Ports 8777-8786.
 
 
-4.5. HTTP Traffic
+5.5. HTTP Traffic
 -----------------
 (Client -> Master)
 
@@ -905,7 +1369,7 @@ Die "utircserver.txt" Datei sieht folgendermassen aus:
 irc.utchat.com
 
 
-4.6. Master Server Traffic
+5.6. Master Server Traffic
 --------------------------
 (Master -> Client)
 
@@ -926,7 +1390,7 @@ Danach wird die Verbindung geschlossen.
 
 --
 
-5. Links
+7. Links
 ========
 
 QStat - http://www.qstat.org
@@ -935,7 +1399,7 @@ Ethereal - http://www.ethereal.com
 Q2 Network Protocol Specs - http://www.csse.monash.edu.au/~timf/bottim/q2net/q2network-0.03.html
 
 
-Letzte Änderung: 2003-10-22 Andre' Schulz
+Letzte Änderung: 2003-11-16 Andre' Schulz
 
 (C) Copyright 2003 Ingo Rohlfs & Andre' Schulz
 Released under GPL

@@ -20,7 +20,6 @@
  */
 
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -67,11 +66,13 @@ exit_printhelp(void)
 "  -i\tbind the masterserver to specific interfaces\n"
 "    \t(use more than once for multiple interfaces)\n"
 "  -l\tlog stdout to a file\n"
+/*"  -L\tset log level\n"
+"    \t0 = INFO\n"
+"    \t1 = WARNING\n"
+"    \t2 = ERROR\n"*/
 "  -p\tset location of plugins\n"
 "  -V\tdisplay version information and exit\n"
 "Report bugs to <andre@malchen.de>.\n");
-
-	exit(0);
 }
 
 void
@@ -109,7 +110,7 @@ give_up_root_privileges(void)
 	// change group to the one of user "masterserver"
 	retval = setgid(passwd_temp->pw_gid);
 	if (retval == -1) {
-		ERRORV("setgid() (retval: %d - errno: %d - %s)\n", retval, errno, strerror(errno));
+		ERRORV("setgid() (errno: %d - %s)\n", errno, strerror(errno));
 		exit(-1);
 	}
 
@@ -117,7 +118,7 @@ give_up_root_privileges(void)
 	// change uid to "masterserver"
 	retval = setuid(passwd_temp->pw_uid);
 	if (retval == -1) {
-		ERRORV("setuid() (retval: %d - errno: %d - %s)\n", retval, errno, strerror(errno));
+		ERRORV("setuid() (errno: %d - %s)\n", errno, strerror(errno));
 		exit(-1);
 	}
 	INFO("give up root permissions and uid/gid change successful\n");
@@ -169,7 +170,7 @@ load_plugins(char *masterserver_plugin_dir, void *handle[])
 	retval = closedir(plugin_dir);
 	if (retval == -1)
 	{
-		ERRORV("closedir(%s) (retval: %d - errno: %d - %s)\n", plugin_dir, retval, errno, strerror(errno));
+		ERRORV("closedir(%s) (errno: %d - %s)\n", plugin_dir, errno, strerror(errno));
 		return -1;
 	}
 	DEBUG("closedir succeeded\n");
@@ -199,16 +200,16 @@ register_plugin(struct masterserver_plugin *me)
 	// me->mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_init(&me->mutex, NULL);
 	me->num_servers = 0;
-	me->list = calloc(me->num_servers+1, sizeof(serverlist_t)); // initialize server list
+	me->list = calloc(1, sizeof(serverlist_t)); // initialize server list
 	if (me->list == NULL) {
-		ERRORV("couldn't allocate memory for %s serverlist\n", me->name);
+		ERRORV("calloc() failed trying to get %d bytes!\n", sizeof(serverlist_t));
 		exit(-1);
 	}
 	me->num_sockets = 0;
 	me->socket_d = NULL;
 	me->server = calloc(me->num_ports, sizeof(struct sockaddr_in));
 	if (me->server == NULL) {
-		ERRORV("couldn't allocate memory for %s struct sockaddr_in\n", me->name);
+		ERRORV("calloc() failed trying to get %d bytes!\n", me->num_ports*sizeof(struct sockaddr_in));
 		exit(-1);
 	}
 	me->msg_out = NULL;
@@ -249,7 +250,8 @@ main(int argc, char *argv[])
 
 	// cmdline parser
 	while (1) {
-		retval = getopt(argc, argv, "dDhi:l:p:V");
+		//retval = getopt(argc, argv, "?dDhi:l:L:p:V");
+		retval = getopt(argc, argv, "?dDhi:l:p:V");
 		if (retval == -1) break;
 
 		switch (retval) {
@@ -260,8 +262,13 @@ main(int argc, char *argv[])
 				option_logfile = 1;
 				logfile = argv[optind-1];
 				break;
-			case 'h':
-				exit_printhelp();
+			/*case 'L':
+				_log_level = atoi(argv[optind-1]);
+				if ((_log_level < 0) || (_log_level > 2)) {
+					ERROR("log level must be 0 <= x <= 2\n");
+					return -1;
+				}
+				break;*/
 			case 'V':
 				exit_printversion();
 			case 'i':
@@ -271,8 +278,8 @@ main(int argc, char *argv[])
 					return -1;
 				}*/
 				if (strlen(argv[optind-1]) > IFNAMSIZ) {
-					ERRORV("interface/device name on cmdline is longer than"
-							"IFNAMSIZ = %d chars\n", IFNAMSIZ);
+					ERRORV("interface/device name is longer than IFNAMSIZ = %d"
+							" chars\n", IFNAMSIZ);
 					return -1;
 				}
 
@@ -288,8 +295,10 @@ main(int argc, char *argv[])
 				masterserver_plugin_dir = argv[optind-1];
 				option_plugin_dir = 1;
 				break;
+			case 'h':
 			case '?':
 			default:
+				exit_printhelp();
 				return -1;
 		} // switch(retval)
 	} // while(1)
@@ -303,7 +312,7 @@ main(int argc, char *argv[])
 		// initialize log file
 		retval = log_init(logfile, "masterserver");
 		if (retval == -1) {
-			ERRORV("log_init() (retval: %d)\n", retval);
+			ERROR("log_init()\n");
 			return -1;
 		}
 
@@ -389,7 +398,8 @@ main(int argc, char *argv[])
 			for (l = 0; l < num_listen_interfaces; l++, (*j)->num_sockets++) {
 				(*j)->socket_d = realloc((*j)->socket_d, ((*j)->num_sockets+1)*sizeof(int));
 				if ((*j)->socket_d == NULL) {
-					ERRORV("out of memory while creating sockets\n", (*j)->name);
+					ERRORV("realloc() failed trying to get %d bytes\n",
+							(*j)->num_sockets+1*sizeof(int));
 					exit(-1);
 				}
 
@@ -401,32 +411,35 @@ main(int argc, char *argv[])
 				retval = setsockopt((*j)->socket_d[(*j)->num_sockets], SOL_SOCKET,
 						SO_BROADCAST, &setsockopt_temp, sizeof(setsockopt_temp));
 				if (retval == -1) {
-					ERRORV("setsockopt() (retval: %d - errno: %d - %s)\n",
-							retval, errno, strerror(errno));
+					ERRORV("setsockopt() (errno: %d - %s)\n", errno,
+							strerror(errno));
 					return -1;
 				}
 
 				// bind socket to the interfaces specified in -i
 				if (option_bind_to_interface) {
-					DEBUG("setsockopt(..., \"%s\", %d+1);\n", listen_interface[l], strlen(listen_interface[l]));
+					DEBUG("setsockopt(..., \"%s\", %d+1);\n",
+							listen_interface[l], strlen(listen_interface[l]));
 					retval = setsockopt((*j)->socket_d[(*j)->num_sockets],
 							SOL_SOCKET, SO_BINDTODEVICE, listen_interface[l],
 							strlen(listen_interface[l])+1);
 					if (retval == -1) {
-						ERRORV("setsockopt() (retval: %d - errno: %d - %s)\n",
-								retval, errno, strerror(errno));
+						ERRORV("setsockopt() (errno: %d - %s)\n", errno,
+								strerror(errno));
 						return -1;
 					}
-					DEBUG("%s socket #%d successfully bound to %s\n", (*j)->name, (*j)->num_sockets, listen_interface[l]);
+					DEBUG("%s socket #%d successfully bound to %s\n",
+							(*j)->name, (*j)->num_sockets, listen_interface[l]);
 					INFO("listening on %s UDP port %d\n", listen_interface[l],
 							(*j)->port[k]);
 				} else INFO("listening on UDP port %d\n", (*j)->port[k]);
 
 				// bind socket to structure
-				retval = bind((*j)->socket_d[(*j)->num_sockets], (struct sockaddr *) &(*j)->server[k], sizeof(struct sockaddr_in));
+				retval = bind((*j)->socket_d[(*j)->num_sockets],
+						(struct sockaddr *) &(*j)->server[k],
+						sizeof(struct sockaddr_in));
 				if (retval == -1) {
-					ERRORV("bind() (retval: %d - errno: %d - %s)\n", retval,
-							errno, strerror(errno));
+					ERRORV("bind() (errno: %d - %s)\n", errno, strerror(errno));
 					return -1;
 				}
 			}
@@ -449,7 +462,8 @@ main(int argc, char *argv[])
 		if (retval != 0) {
 			switch(retval) {
 				case EAGAIN:
-					ERROR("pthread_create returned an error; not enough system resources to create a process for the new thread\n");
+					ERROR("pthread_create returned an error; not enough system"
+						" resources to create a process for the new thread\n");
 					ERRORV("or more than %d threads are already active\n", PTHREAD_THREADS_MAX);
 					return -1;
 			}
@@ -465,11 +479,13 @@ main(int argc, char *argv[])
 		if (*j == NULL) break;
 		if ((*j)->enabled == 0) continue;
 
-		retval = pthread_create(&(*j)->heartbeat_thread_nr, NULL, (void *) plugin_heartbeat_thread, (void *) *j);
+		retval = pthread_create(&(*j)->heartbeat_thread_nr, NULL,
+				(void *) plugin_heartbeat_thread, (void *) *j);
 		if (retval != 0) {
 			switch(retval) {
 				case EAGAIN:
-					ERROR("pthread_create returned an error; not enough system resources to create a process for the new thread\n");
+					ERROR("pthread_create returned an error; not enough system"
+						" resources to create a process for the new thread\n");
 					ERRORV("or more than %d threads are already active\n", PTHREAD_THREADS_MAX);
 	                return -1;
 			}
@@ -502,7 +518,7 @@ main(int argc, char *argv[])
 		free((*j)->list);
 		for (i = 0; i < (*j)->num_sockets; i++) close((*j)->socket_d[i]);
 		if ((*j)->num_msgs > 0)
-			for (i = 0; i < (*j)->num_msgs; i++, free((*j)->msg_out[i]));
+			for (i = 0; i < (*j)->num_msgs; i++) free((*j)->msg_out[i]);
 		free((*j)->msg_out);
 		free((*j)->msg_out_length);
 		DEBUG("thread #%ld clean up successful\n", (*j)->thread_nr);
@@ -513,7 +529,7 @@ main(int argc, char *argv[])
 		dlclose(&handle[num_plugins]);
 	DEBUG("dynamic libs successfully closed\n");
 
-	// TODO: check retval
+	// TODO: check retval ?
 	log_close();
 	return 0;
 }
@@ -546,17 +562,19 @@ plugin_thread(void *arg)
 		}
 		retval = select(n+1, &rfds, NULL, NULL, NULL);
 		if (retval == -1) {
-			ERRORV("%s_thread: select() (retval: %d - errno: %d - %s)\n",
-				me->name, retval, errno, strerror(errno));
+			ERRORV("%s_thread: select() (errno: %d - %s)\n", me->name, errno,
+					strerror(errno));
 			pthread_exit((void *) 1);
 		}
 		for (i = 0; i < me->num_sockets; i++) {
 			if (FD_ISSET(me->socket_d[i], &rfds)) {
-				retval = recvfrom(me->socket_d[i], msg_in, MAX_PKT_LEN, 0, (struct sockaddr *) &me->client, &client_len);
+				retval = recvfrom(me->socket_d[i], msg_in, MAX_PKT_LEN, 0,
+						(struct sockaddr *) &me->client, &client_len);
 				if (retval == -1) {
-					ERRORV("%s_thread: recvfrom() (retval: %d - errno: %d - %s)\n",
-						me->name, retval, errno, strerror(errno));
-					ERRORV("%s_thread: socket_d is %d\n", me->name, me->socket_d[i]);
+					ERRORV("%s_thread: recvfrom() (errno: %d - %s)\n", me->name,
+							errno, strerror(errno));
+					ERRORV("%s_thread: socket_d is %d\n", me->name,
+							me->socket_d[i]);
 					ERRORV("%s_thread: MAX_PKT_LEN is %d\n",
 						me->name, MAX_PKT_LEN);
 					pthread_exit((void *) 1);
@@ -566,7 +584,8 @@ plugin_thread(void *arg)
 				DEBUG("locking mutex\n");
 				retval = pthread_mutex_lock(&me->mutex);
 				if (retval != 0) {
-					ERRORV("%s_thread: pthread_mutex_lock() (retval: %d)\n", me->name, retval);
+					ERRORV("%s_thread: pthread_mutex_lock() (retval: %d)\n",
+							me->name, retval);
 					pthread_exit((void *) -1);
 				}
 				DEBUG("mutex succesfully locked\n");
@@ -594,8 +613,8 @@ plugin_thread(void *arg)
 								me->msg_out_length[j], 0,
 								(struct sockaddr *) &me->client, client_len);
 						if (retval == -1) {
-							ERRORV("sendto() (retval: %d - errno: %d - %s)\n",
-									retval, errno, strerror(errno));
+							ERRORV("sendto() (errno: %d - %s)\n",
+									errno, strerror(errno));
 						} else DEBUG("%d bytes sent\n", retval);
 					}
 				} else if (retval == 2) {
@@ -653,7 +672,7 @@ plugin_heartbeat_thread(void *arg)
 		for (i = 0; i < me->num_servers; i++) {
 			heartbeat_diff = time(NULL) - me->list[i].lastheartbeat;
 			if (heartbeat_diff > 300) {
-				INFO("%s_heartbeat_thread: server %s:%d died (heartbeat_diff %d); deleting from list\n",
+				INFO("%s_heartbeat_thread: server %s:%d died (heartbeat_diff %d)\n",
 					me->name, inet_ntoa(me->list[i].ip), ntohs(me->list[i].port), heartbeat_diff);
 				delete_server(me, i);
 				i--;

@@ -1,3 +1,197 @@
+2004-02-01	Andre' Schulz	<andre@malchen.de>
+* plugins/libh2.c
+	removed H2M_PORT definition
+	minor stuff fixed/changed/cleaned up
+	version number bumped up to 0.3.2
+
+* plugins/libq3.c
+	minor stuff fixed/changed/cleaned up
+	version number bumped up to 0.7.2
+
+* plugins/libq2.c
+	minor stuff fixed/changed/cleaned up
+	version number bumped up to 0.3.2
+
+* plugins/libqw.c
+	minor stuff fixed/changed/cleaned up
+	version number bumped up to 0.1.1
+
+* masterserver.h
+	version number bumped up to 0.3.2
+
+* tests/test-q2.c
+	minor fixes
+
+* NEWS
+	added info about 0.3.2 release
+
+2004-01-28	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	forgot to comment out some log level related code
+
+* tests/test-q2.c
+	timeouts implemented
+	fixed and improved test_query()
+	created test_shutdown()
+	test summary
+
+2004-01-20	Andre' Schulz	<andre@malchen.de>
+* plugins/libh2.c
+	fixed "query" string by deleting \0 and setting size to 6
+
+2004-01-15	Andre' Schulz	<andre@malchen.de>
+* tests/test-q2.c
+	fixed some stuff
+
+* tests/Makefile
+	changed some stuff
+
+2004-01-14	Andre' Schulz	<andre@malchen.de>
+* README
+	give credit to fatty <fatty@gmx.ch>
+
+2004-01-13	Andre' Schulz	<andre@malchen.de>
+* plugins/libq2.c
+	fixed "query" string by deleting \0 and setting size to 6
+		this broke Gamespy queries
+		thanks to fatty <fatty@gmx.ch>
+
+2004-01-12	Andre' Schulz	<andre@malchen.de>
+* Makefile
+	added "check" target
+
+* tests/Makefile
+	added
+
+2004-01-11	Andre' Schulz	<andre@malchen.de>
+* tests/test-q2.c
+	merged q2 header into packets
+	test_query() created
+
+2004-01-07	Andre' Schulz	<andre@malchen.de>
+* tests/test-q2.c
+	updated
+
+2004-01-06	Andre' Schulz	<andre@malchen.de>
+* masterserver.h
+	FBSD friendliness
+		include netinet/in.h before arpa/inet.h
+		include sys/types.h before everything else
+
+* masterserver.c
+	not including sys/types.h anymore
+
+2003-12-26	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOKOLLE
+	added more heretic2 packet dumps
+	added another heretic2 info packet
+
+* plugins/libh2.c
+	fixed process() function (broken for quite some time doh!)
+	removed version defines
+	bumped version number up to 0.3.1
+	more verbose error messages
+	minor fixes all over the place
+
+* logging.c
+	added variable _log_level
+
+* logging.h
+	disabled all log level code
+
+* masterserver.c
+	disabled all log level code
+
+* plugins/libq2.c
+	removed version defines
+	bumped version number up to 0.3.1
+	minor fixes all over the place
+
+* plugins/libqw.c
+	disabled some unused code
+	minor fixes
+
+* tests/test-q2.c
+	new
+
+2003-12-23	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOKOLLE
+	added heartbeat, shutdown and info packet dumps for heretic2
+
+2003-12-20	Andre' Schulz	<andre@malchen.de>
+* logging.h
+	add log level checking to macros
+
+* masterserver.c
+	added -L option to select log level
+	reformatted some lines to 80 chars width
+
+* plugins/libh2.c
+	unified heartbeat message
+
+* plugins/libq2.c
+	unified heartbeat message
+
+* plugins/libq3.c
+	unified heartbeat message
+	minor stuff
+
+* plugins/libqw.c
+	removed some dead code
+	real vars in qwm_private_data_t
+	unified heartbeat message
+
+2003-11-18	Andre' Schulz	<andre@malchen.de>
+* plugins/libqw.c
+	added packet definitions
+
+2003-11-17	Andre' Schulz	<andre@malchen.de>
+* plugins/libh2.c
+	removed superfluous if statement
+	corrected description at line 1
+
+* plugins/libq2.c
+	removed superfluous if statement
+
+* plugins/libq3.c
+	removed superfluous if statement
+
+* plugins/libexample.c
+	removed version #defines
+
+2003-11-16	Andre' Schulz	<andre@malchen.de>
+* docs/PROTOKOLLE
+	added STEF1 section
+	updated Quake3, Quake2, Heretic2 section
+
+* plugins/libqw.c
+	removed superfluous stuff
+	updates all around
+
+2003-11-15	Andre' Schulz	<andre@malchen.de>
+* plugins/Makefile
+	small changes
+	added libqw
+
+* plugins/libqw.c
+	removed process_{statusResponse,getmotd}()
+	added process_ping()
+	added process_shutdown()
+	changes in process()
+
+2003-11-14	Andre' Schulz	<andre@malchen.de>
+* plugins/libqw.c
+	new
+
+2003-10-30	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	removed useless stuff from error messages
+	made memory related error messages more verbose
+
+2003-10-26	Andre' Schulz	<andre@malchen.de>
+* masterserver.c
+	print help text if unknown option was given on cmdline
+
 2003-10-25	Andre' Schulz	<andre@malchen.de>
 * plugins/libq3.c
 	deleted all code which had something to do with options in getservers packets

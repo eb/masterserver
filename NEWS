@@ -1,3 +1,8 @@
+2004-02-01	masterserver-0.3.2 release
+- libh2/q2 gamespy query bug fixed (thanks to fatty <fatty@gmx.ch>)
+- made log messages smaller
+- docs/PROTOKOLLE updated
+
 2003-10-25	masterserver-0.3.1 release
 - major bugfixes in Quake3 plugin and masterserver
 

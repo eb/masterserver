@@ -1,21 +1,27 @@
 Coming up next:
-- docs: add details about destination of some packets
 - rework lib{q2,h2} packet assembly code
 - implement libq3 parser in lib{q2,h2} for player info etc.
 - maybe rework the socket/interface binding code
+- set vim modelines? /* vim:sw=4:ts=4: */
+- cleanup libqw
+- docs/PROTOKOLLE: add stef1 packets
+- docs/PROTOKOLLE.uk_us: update
+- write test suite
+- libq3: recover from realloc() error
 
 Near future:
-- static compile target in Makefile
-  maybe dietlibc support
 - implement some anti spamming/DoS or throttling system to prevent DoS attacks
 - implement stub functions for protocols other than udp
 - ascii version of docs/masterserver_thread_system.dia
-- Signal handler
+- signal handler
 - specify as which user masterserver should run
 - Damn UT is using TCP for communication with master server.
   Allow plugins to use protocols other than UDP for communication.
 - autotools + FreeBSD support
 - process packets in parallel
+- add more qw/q2/q3 based games
+- docs/PROTOKOLLE: check which options the stef1 master honors in getservers
+- "The Sega.Net master server address is: "master.id-q3a.games.sega.net: 27950"
 
 More or less far future:
 - Support for other games:
@@ -26,5 +32,7 @@ More or less far future:
 - libq3: implement player statistics(?)
 - include a database interface in masterserver
   (the one from devil)
+- use writev() or something different for sending out packets ?
 
-Last modified: 2003-10-26 by Andre' Schulz
+Last modified: 2004-01-06 by Andre' Schulz
+

@@ -38,6 +38,7 @@ char *default_progname = NULL;
 int _lfd = 0;	// global file descriptor where debug messages go
 FILE *_lfp = NULL;	// global file pointer where debug messages go
 
+int _log_level = 0;
 
 int log_init(char *filename, char *progname) 
 {

@@ -27,7 +27,7 @@ Contributions and suggestions are very welcome.
 
 - generic master server
 - easy to extend via plugins
-- document the network protocols of the supported games
+- document the network protocols of supported games
 - admin interface via console and tcp/ip
 - ...
 
@@ -100,5 +100,9 @@ Viktor Vasilev aka shr1k3 <shr1k3@gmx.at>
 
 qstat team and their source code <http://www.qstat.org>
 
+fatty <fatty@gmx.ch>
+	packet dumps which helped fix a small bug in libq2
 
-Last modified: 2003-10-25 by Andre' Schulz
+
+Last modified: 2004-01-14 by Andre' Schulz
+

@@ -2,7 +2,7 @@ CC = /usr/bin/gcc
 LD = /usr/bin/ld
 INSTALL = /usr/bin/install
 INSTALLDATA = /usr/bin/install -m 644
-PLUGINS = libq3.c libq2.c libh2.c
+PLUGINS = libq3.c libq2c
 OBJS = libq3.o libq2.o libh2.o
 LIBS = libq3.so libq2.so libh2.so
 CFLAGS = -g -Wall -fPIC -rdynamic -DDEBUG
@@ -25,9 +25,7 @@ clean:
 
 install:
 	$(INSTALL) -m 755 -d /usr/lib/lasange/masterserver
-	$(INSTALLDATA) libq3.so /usr/lib/lasange/masterserver
-	$(INSTALLDATA) libh2.so /usr/lib/lasange/masterserver
-	$(INSTALLDATA) libq2.so /usr/lib/lasange/masterserver
+	$(INSTALLDATA) $(LIBS) /usr/lib/lasange/masterserver
 
 uninstall:
 	$(RM) /usr/lib/lasange/masterserver/libq3.so

@@ -23,8 +23,6 @@
 
 // for future use
 // #define EXAMPLE_PROTOCOL IPPROTO_UDP
-#define EXAMPLE_PLUGIN_VERSION_MAJOR 0
-#define EXAMPLE_PLUGIN_VERSION_MINOR 3
 #define HEARTBEAT_TIMEOUT 300 // value represents seconds
 
 #undef LOG_SUBNAME

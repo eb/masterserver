@@ -1,8 +1,9 @@
 #ifndef _MASTERSERVER_H
 #define _MASTERSERVER_H
 
-#include <arpa/inet.h>
+#include <sys/types.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdio.h>
@@ -17,8 +18,9 @@
 #endif
 
 int debug = 0; // global debug var
-char masterserver_version[] = "0.3.1";
+char masterserver_version[] = "0.3.2";
 
+// XXX: merge struct in_addr and in_port_t to struct sockaddr_in ?
 typedef struct {
 	struct in_addr ip; // ip adress
 	in_port_t port; // port
@@ -29,7 +31,6 @@ typedef struct {
 typedef char plugin_name[32];
 
 // struct for plugins
-// TODO: multi port support
 struct masterserver_plugin {
 	// the following has to be filled by the plugin
 	plugin_name name; // plugin name
