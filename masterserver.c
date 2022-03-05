@@ -38,7 +38,7 @@
 
 #if defined(SOLARIS)
 #include <sys/time.h>
-#include <limits.h>		// PATH_MAX
+#include <syslimits.h>		// PATH_MAX
 #elif defined(__FreeBSD__)
 #include <limits.h>
 #endif
@@ -535,7 +535,6 @@ main(int argc, char *argv[])
 				case EAGAIN:
 					ERROR("pthread_create returned an error; not enough system"
 						" resources to create a process for the new thread\n");
-					ERRORV("or more than %d threads are already active\n", PTHREAD_THREADS_MAX);
 					return EXIT_FAILURE;
 			}
 		}
@@ -557,7 +556,6 @@ main(int argc, char *argv[])
 				case EAGAIN:
 					ERROR("pthread_create returned an error; not enough system"
 						" resources to create a process for the new thread\n");
-					ERRORV("or more than %d threads are already active\n", PTHREAD_THREADS_MAX);
 	                return EXIT_FAILURE;
 			}
 		}
