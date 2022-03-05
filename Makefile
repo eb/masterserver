@@ -16,7 +16,7 @@ masterserver.o: masterserver.c masterserver.h
 logging.o: logging.c logging.h
 
 masterserver: $(OBJ_FILES)
-	$(CC) $(LDFLAGS) $(CFLAGS_MAIN) -o $@ $(OBJ_FILES)
+	$(CC) $(CFLAGS_MAIN) -o $@ $(OBJ_FILES) $(LDFLAGS)
 
 plugins:
 	$(MAKE) -C plugins
