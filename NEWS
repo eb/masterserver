@@ -1,3 +1,6 @@
+2005-05-28	masterserver-0.4.1 release
+- fixed a byte-order bug in the Doom 3 plugin
+
 2005-05-21	masterserver-0.4 release
 - updated STVEF1, UT and Doom 3 sections in docs/PROTOCOLS
 - added RtCW section to docs/PROTOCOLS

@@ -63,7 +63,7 @@ const char	d3_pkt_srvauth[]	= "srvAuth";
 const int	d3_pkt_srvauth_len	= 7;
 const char	d3_pkt_delimiter[]	= "\0";
 
-const char d3m_plugin_version[] = "0.1";
+const char d3m_plugin_version[] = "0.1.1";
 static port_t d3m_ports[] = { { IPPROTO_UDP, 27650 } };
 
 // player info
@@ -94,6 +94,10 @@ typedef struct {
 	int si_spectators;
 	int si_teamDamage;
 	int si_pure;
+	int si_idleServer;
+	int net_serverDedicated;
+	int si_maxplayers;
+
 	d3m_player_data_t *_player; // player info
 	// following is information not in packet
 	int _players; // # of players
@@ -262,7 +266,7 @@ send_getInfo()
 static int
 process_getServers(char *packet)
 {
-	int i, pkt_offset; // temp vars
+	int i, pkt_offset, tmp_port; // temp vars
 	int getsrv_protocol;
 	char getsrv_filter;
 	d3m_private_data_t *temp_priv_data;
@@ -327,7 +331,8 @@ process_getServers(char *packet)
 			// copy data from server list into packet
 			memcpy(d3m.msg_out[0]+pkt_offset, &d3m.list[i].ip, 4);
 			pkt_offset += 4;
-			memcpy(d3m.msg_out[0]+pkt_offset, &d3m.list[i].port, 2);
+			tmp_port = htons(d3m.list[i].port);
+			memcpy(d3m.msg_out[0]+pkt_offset, &tmp_port, 2);
 			pkt_offset += 2;
 
 			d3m.msg_out_length[0] += 6;
@@ -468,6 +473,12 @@ process_infoResponse(char *packet, int packetlen)
 			private_data->si_teamDamage = atoi(value);
 		} else if (strcmp(varname, "si_pure") == 0) {
 			private_data->si_pure = atoi(value);
+		} else if (strcmp(varname, "si_idleServer") == 0) {
+			private_data->si_idleServer = atoi(value);
+		} else if (strcmp(varname, "net_serverDedicated") == 0) {
+			private_data->net_serverDedicated = atoi(value);
+		} else if (strcmp(varname, "si_maxplayers") == 0) {
+			private_data->si_maxplayers = atoi(value);
 		} else {
 			WARNING("unknown option \"%s\" in statusResponse ignored\n", varname);
 		}
@@ -564,7 +575,7 @@ process(char *packet, int packetlen)
 		WARNING("unknown packet received!\n");
 		return -1;
 	} // end if for 0xffff marker
-	WARNING("invalid packet received: Doom 3 protocol marker missing!\n");
+	WARNING("invalid packet received from %s:%d: Doom 3 protocol marker missing!\n", inet_ntoa(d3m.client.sin_addr), ntohs(d3m.client.sin_port));
 	return -1; // invalid packet
 }
 

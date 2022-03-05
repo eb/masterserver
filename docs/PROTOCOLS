@@ -127,7 +127,9 @@ Beware! This document is still chaotic and definitely incomplete.
 	10.2. q
 	10.3. 0
 
-11. Links
+11. Enemy Territory
+
+12. Links
 
 --
 
@@ -136,12 +138,12 @@ Beware! This document is still chaotic and definitely incomplete.
 
 Q3 server port: UDP 27960
 
-Q3 master DNS name: master.quake3arena.com
-Q3 master port: UDP 27950
-Q3 MOTD DNS name: update.quake3arena.com
-Q3 MOTD server port: UDP 27951
-Q3 auth server DNS name: authorize.quake3arena.com
-Q3 auth server port: UDP 27952
+Q3 master server DNS name:	master.quake3arena.com
+Q3 master server port:		UDP 27950
+Q3 MOTD server DNS name:	update.quake3arena.com
+Q3 MOTD server port:		UDP 27951
+Q3 auth server DNS name:	authorize.quake3arena.com
+Q3 auth server port:		UDP 27952
 
 
 1.1. Master server
@@ -592,12 +594,12 @@ Reply to a "ping" packet.
 =====================
 Heretic 2 server port: UDP 28910
 
-Heretic 2 master IP: 209.98.56.7
-Heretic 2 master DNS name: master.ravensoft.com
-Heretic 2 master server port: UDP 28900
+Heretic 2 master server IP:			209.98.56.7
+Heretic 2 master server DNS name:	master.ravensoft.com
+Heretic 2 master server port:		UDP 28900
 
-Heretic 2 Gamespy master IP: 207.38.8.34
-Heretic 2 Gamespy master port: UDP 27900
+Heretic 2 Gamespy master IP:	207.38.8.34
+Heretic 2 Gamespy master port:	UDP 27900
 
 +set public 1
 public 1
@@ -832,6 +834,7 @@ means. Client supplied information follows in quotes.
 "client_connect" is the server's reply to a "connect" packet.
 TODO: find out if this an acknowledgement.
 
+
 2.1.10. ping
 ------------
 (UDP, Server:28910 -> Master:28900)
@@ -844,9 +847,9 @@ TODO: find out if this an acknowledgement.
 3. Quake 2 protocol
 ===================
 
-Quake 2 server port: UDP 27910
-Quake 2 master IP: 192.246.40.37 (hardcoded in the binary)
-Quake 2 master server port: UDP 27900
+Quake 2 server port:		UDP 27910
+Quake 2 master server IP:	192.246.40.37
+Quake 2 master server port:	UDP 27900
 
 
 3.1. heartbeat
@@ -967,6 +970,7 @@ In comparison 13 players, gloom:
 This is the reply to the "status" packet.
 TODO: more detailed description, see heretic2 section for now
 
+
 3.6. info
 ---------
 (UDP, Server:27910 -> Client)
@@ -1011,6 +1015,7 @@ connection.
 Reply to a "getchallenge" packet. Contains a presumably signed 32bit integer.
 Second step in establishing a connection.
 
+
 3.10. connect
 -------------
 (UDP, Client -> Server:27910)
@@ -1028,6 +1033,7 @@ Third step in establishing a connection. Contains protocol version ("34"),
 an unknown number ("810"), the challenge number ("22695") and client supplied
 information.
 
+
 3.11. client_connect
 --------------------
 (UDP, Server:27910 -> Client)
@@ -1037,6 +1043,7 @@ information.
 
 Fourth step in establishing a connection.
 TODO: is this an acknowledgement?
+
 
 3.12. servers
 -------------
@@ -1083,12 +1090,12 @@ Reply to a "ping" packet.
 
 EF server port: UDP 27960
 
-EF master DNS name: master.stef1.ravensoft.com
-EF master port: UDP 27953
-EF MOTD DNS name: motd.stef1.ravensoft.com
-EF MOTD server port: UDP 27951
-EF auth server DNS name: authenticate.stef1.ravensoft.com
-EF auth server port: UDP 27952
+EF Master server DNS name:	master.stef1.ravensoft.com
+EF Master server port:		UDP 27953
+EF MOTD server DNS name:	motd.stef1.ravensoft.com
+EF MOTD server port:		UDP 27951
+EF auth server DNS name:	authenticate.stef1.ravensoft.com
+EF auth server port:		UDP 27952
 
 
 4.1. Master Server
@@ -1205,6 +1212,7 @@ The value of the "motd" variable is shown on the bottom of the loading screen.
 0000  ff ff ff ff 67 65 74 69 6e 66 6f 0a               ÿÿÿÿgetinfo.
 
 No parameters known.
+
 
 4.2.2. infoResponse
 -------------------
@@ -1426,14 +1434,15 @@ A "heartstop" packet is sent on server shutdown.
 5. Unreal Tournament protocol
 =============================
 
-UT server ports: UDP 7777, UDP 7778, UDP 7779, UDP 7780, UDP 8777
-UT master ports: TCP 80, UDP 27900, TCP 28900
-UT Gamespy master DNS name: master0.gamespy.com
-UT Epic master DNS name: unreal.epicgames.com
-UT Mplayer master DNS name: master.mplayer.com
+UT server ports:			UDP 7777, UDP 7778, UDP 7779, UDP 7780, UDP 8777
+UT master ports:			TCP 80, UDP 27900, TCP 28900
+UT Gamespy master DNS name:	master0.gamespy.com
+UT Epic master DNS name:	unreal.epicgames.com
+UT Mplayer master DNS name:	master.mplayer.com
 
 UT uses the Gamespy protocol.
 TODO: more info on gspy protocol
+
 
 5.1. heartbeat
 --------------
@@ -1465,6 +1474,7 @@ Packets for the Gamespy master look like this:
 Variables should have the same meaning as in the Epic master heartbeat. Packets
 for the Gamespy master are sent to master0.gamespy.com. The time between 2
 heartbeats is 60 seconds.
+
 
 5.2. info
 ---------
@@ -1608,10 +1618,10 @@ Reply looks like the following:
 02b0  74 5f 37 5c 74 72 75 65  5c 71 75 65 72 79 69 64   t_7\true \queryid
 02c0  5c 36 32 2e 32 5c 66 69  6e 61 6c 5c               \62.2\fi nal\    
 
-
 TODO: clean up
 TODO: more packets?
 TODO: description
+
 
 5.4. REPORTQUERY
 ----------------
@@ -1623,6 +1633,7 @@ TODO: dump of reply
 
 This is broadcasted by the UT client to find LAN servers. Packet is sent to
 UDP ports 8777-8786.
+
 
 5.5. HTTP Traffic
 -----------------
@@ -1674,6 +1685,7 @@ utircserver.txt request:
 
 TODO: description of the files
 TODO: description
+
 
 5.6. Master Server Traffic
 --------------------------
@@ -1816,6 +1828,7 @@ struct {
 	int bottom_color;
 };
 
+
 6.3. c
 ------
 (UDP, Client -> Master:27000)
@@ -1823,6 +1836,7 @@ struct {
 0000  63 0a 00                                          c..
 
 This packet requests the server list from the master.
+
 
 6.4. d
 ------
@@ -1839,11 +1853,13 @@ This is the reply to a "c" (server list request) packet. After the
 "\xff\xff\xff\xffd\n" string the servers are listed in 6 byte blocks. 4 bytes
 for the IP and 2 bytes for the port. There are no delimiters.
 
+
 6.5. ping
 ---------
 (UDP, Master:27000 -> Server:27500)
 
 0000  ff ff ff ff 70 69 6e 67 0a 00                     ....ping..
+
 
 6.6. k
 ------
@@ -1853,6 +1869,7 @@ for the IP and 2 bytes for the port. There are no delimiters.
 
 Ping from Server to Master or client.
 
+
 6.7. l
 ------
 (UDP, All -> All)
@@ -1860,6 +1877,7 @@ Ping from Server to Master or client.
 0000  ff ff ff ff 6c 0a 00                              ....l..
 
 This is the reply/ack to "ping" and "k" packets.
+
 
 6.8. a
 ------
@@ -1869,6 +1887,7 @@ This is the reply/ack to "ping" and "k" packets.
 
 This is the heartbeat packet.
 TODO: What's the meaning of the numbers?
+
 
 6.9. C
 ------
@@ -1893,14 +1912,15 @@ Server port: UDP 26950
 
 Server port: UDP 27960
 
-Master DNS name: wolf.idsoftware.com
-Master port: UDP 27950
-MOTD DNS name: wolf.idsoftware.com
-MOTD server port: UDP 27951
-Auth server DNS name: wolf.idsoftware.com
-Auth server port: UDP 27952
+Master server DNS name:	wolf.idsoftware.com
+Master server port:		UDP 27950
+MOTD server DNS name:	wolf.idsoftware.com
+MOTD server port:		UDP 27951
+Auth server DNS name:	wolf.idsoftware.com
+Auth server port:		UDP 27952
 
 The RtCW protocol is similar to the Q3 protocol.
+
 
 8.1. heartbeat
 --------------
@@ -1909,7 +1929,12 @@ The RtCW protocol is similar to the Q3 protocol.
 0000  ff ff ff ff 68 65 61 72 74 62 65 61 74 20 57 6f   ....heartbeat Wo
 0010  6c 66 65 6e 73 74 65 69 6e 2d 31 0a               lfenstein-1.
 
-Exactly like the Q3 heartbeat except for the different option.
+0000  ff ff ff ff 68 65 61 72 74 62 65 61 74 20 57 6f   ....heartbeat Wo
+0010  6c 66 46 6c 61 74 6c 69 6e 65 2d 31 0a            lfFlatline-1.
+
+Exactly like the Q3 heartbeat except for the different option. The 2nd
+"heartbeat" packet is sent by the server on shutdown.
+
 
 8.2. getinfo
 ------------
@@ -1925,9 +1950,10 @@ TODO: getinfo without challenge
 Just like the Q3 protocol. The challenge number is a 32 bit signed integer and
 is optional.
 
+
 8.3. getIpAuthorize
 -------------------
-(UDP, Server:27960 -> Master:27950)
+(UDP, Server:27960 -> Master:27952)
 
 0000  ff ff ff ff 67 65 74 49 70 41 75 74 68 6f 72 69   ....getIpAuthori
 0010  7a 65 20 2d 33 34 32 33 39 30 34 39 39 20 31 39   ze -342390499 19
@@ -1939,9 +1965,10 @@ and has authorized itself at the master. The number is a challenge number which
 is a 32 bit signed integer.
 TODO: What is the meaning of the "0" at the end of the packet?
 
+
 8.4. ipAuthorize
 ----------------
-(UDP, Master:27950 -> Server:27960)
+(UDP, Master:27952 -> Server:27960)
 
 0000  ff ff ff ff 69 70 41 75 74 68 6f 72 69 7a 65 20   ....ipAuthorize 
 0010  2d 33 34 32 33 39 30 34 39 39 20 64 65 6e 79 20   -342390499 deny 
@@ -1953,6 +1980,7 @@ the master, which looks up if the cdkey of the IP is valid or not. If the IP
 is not authorized by the master it sends the above packet with the string
 "deny INVALID_CDKEY". The number is a challenge number which is a 32bit signed
 integer.
+
 
 8.5. infoResponse
 -----------------
@@ -1976,6 +2004,7 @@ infoResponse with challenge:
 
 TODO: infoResponse from a populated server
 
+
 8.6. getmotd
 ------------
 (UDP, Client -> Master:27951)
@@ -1993,6 +2022,7 @@ some information about the client such as the value of the "renderer" and
 "version" variables. It also contains a challenge number, which is a 32 bit
 signed integer.
 
+
 8.7. motd
 ---------
 (UDP, Master:27951 -> Client)
@@ -2006,14 +2036,29 @@ This is the reply to a "getmotd" packet. It contains the challenge number and
 the Motto of the Day. The MOTD is shown on the client while loading the game
 data.
 
+
+8.8. getservers
+---------------
+(UDP, Client -> Master:27950)
+
+0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 20 36   ....getservers 6
+0010  30 20 65 6d 70 74 79 20 66 75 6c 6c 20 64 65 6d   0 empty full dem
+0020  6f 0a                                             o.
+
+This packet is used to request the server list from the master. After
+"getservers" follows the protocol version and filter options.
+	empty	include servers with no players on them
+	full	include full servers
+	demo	include demo version servers
+
 --
 
 9. Doom3 protocol
 =================
 
-Server port: UDP 27666
-Master port: UDP 27650
-Master DNS name: idnet.ua-corp.com
+Server port:			UDP 27666
+Master server port: 	UDP 27650
+Master server DNS name:	idnet.ua-corp.com
 
 
 9.1. getServers
@@ -2035,6 +2080,7 @@ byte are interpreted as a server filter and the MSBs as a game type filter.
 0x20	Tournament/1v1
 0x30	TDM		XXX: 0x30? not 0x40?
 
+
 9.2. versionCheck
 -----------------
 (UDP, Server:27666/Client -> Master:27650)
@@ -2048,6 +2094,7 @@ byte are interpreted as a server filter and the MSBs as a game type filter.
 FIXME: No clue what this packet is all about.
 The 4 bytes after "versionCheck" plus \0 delimiter are the protocol version.
 (see getServers)
+
 
 9.3. servers
 ------------
@@ -2075,6 +2122,7 @@ IP/port pairs with 4 bytes for IP and 2 bytes for the port address. And there
 is no limit on the packet length. Beware the port address; it's in network
 byte order.
 
+
 9.4. getInfo
 ------------
 (UDP, Master:27650/Client -> Server:27666)
@@ -2089,6 +2137,7 @@ getInfo with challenge:
 
 Request server information. After "getInfo" and a \0 delimiter follows the
 challenge number as a 4 byte integer.
+
 
 9.5. infoResponse
 -----------------
@@ -2161,6 +2210,7 @@ struct doom3_player_info
 According to qstat the challenge number follows directly after the
 "infoResponse" string. After the challenge we have the version.
 
+
 9.6. newVersion
 ---------------
 (UDP, Master:27650 -> Server:27666/Client)
@@ -2175,6 +2225,7 @@ According to qstat the challenge number follows directly after the
 
 The "newVersion" packet is the reply to a "versionCheck" packet.
 
+
 9.7. heartbeat
 --------------
 (UDP, Server:27666 -> Master:27650)
@@ -2183,6 +2234,7 @@ The "newVersion" packet is the reply to a "versionCheck" packet.
 
 The good old "heartbeat" packet. Each time the Doom3 Master Server receives a
 "heartbeat" packet it sends a "getInfo" packet to that server.
+
 
 9.8. srvAuth
 ------------
@@ -2197,6 +2249,7 @@ A different srvAuth packet:
 0010  81 37 07 04 af 10 00 00 00                        .7.......
 
 XXX: What's that? Seems to include the server's version number.
+
 
 9.9. auth
 ---------
@@ -2213,11 +2266,13 @@ A different auth packet:
 XXX: What's that?
 This is the reply to a "srvAuth" packet.
 
+
 9.10. challenge
 ---------------
 (UDP, Client -> Server:27666)
 
 0000  ff ff 63 68 61 6c 6c 65 6e 67 65 00 af 10 00 00   ..challenge.....
+
 
 9.11. challengeResponse
 -----------------------
@@ -2237,12 +2292,13 @@ XXX: What do the bytes after the command string mean?
 Server port: UDP 27015
 Master port: UDP 27010
 
+
 10.1. s
 -------
 (Master:27010/Client -> Server)
 
 With challenge:
------------------
+---------------
 0000  ff ff ff ff 73 0a 25 63 25 75                     ....s.%c%u
 
 This packet requests information from a server. The last 4 bytes in the packet
@@ -2252,7 +2308,7 @@ every "q" packet it receives.
 
 10.2. q
 -------
-(Server -> Master:27010)
+(UDP, Server -> Master:27010)
 
 0000  71                                                q
 
@@ -2262,7 +2318,7 @@ This is the heartbeat packet which is sent by the server to the Master every
 
 10.3. 0
 -------
-(Server:27015 -> Master:27010/Client)
+(UDP, Server:27015 -> Master:27010/Client)
 
 Without players:
 ----------------
@@ -2280,7 +2336,151 @@ This packet is the reply to a "s" packet.
 
 --
 
-11. Links
+11. Enemy Territory protocol
+============================
+
+Auth server DNS name:	au2rtcw2.activision.com
+Auth server port:		UDP 27960
+MOTD server DNS name:	etmaster.idsoftware.com
+MOTD server port:		UDP 27951
+Master server DNS name:	etmaster.idsoftware.com
+Master server port:		UDP 27950
+
+
+11.1. getUpdateInfo
+-------------------
+(UDP, Client -> Master:27960)
+
+0000  ff ff ff ff 67 65 74 55 70 64 61 74 65 49 6e 66   ....getUpdateInf
+0010  6f 20 22 45 54 20 32 2e 35 35 22 20 22 6c 69 6e   o "ET 2.55" "lin
+0020  75 78 2d 69 33 38 36 22 0a                        ux-i386".
+
+TODO: description
+
+
+11.2. updateResponse
+--------------------
+(UDP, Master:27960 -> Client)
+
+0000  ff ff ff ff 75 70 64 61 74 65 52 65 73 70 6f 6e   ....updateRespon
+0010  73 65 20 30                                       se 0
+
+TODO: description
+
+
+11.3. getmotd
+-------------
+(UDP, Client -> Master:27951)
+
+0000  ff ff ff ff 67 65 74 6d 6f 74 64 20 22 5c 63 68   ....getmotd "\ch
+0010  61 6c 6c 65 6e 67 65 5c 38 32 32 32 38 33 31 36   allenge\82228316
+0020  38 5c 72 65 6e 64 65 72 65 72 5c 47 65 46 6f 72   8\renderer\GeFor
+0030  63 65 33 2f 41 47 50 2f 53 53 45 5c 76 65 72 73   ce3/AGP/SSE\vers
+0040  69 6f 6e 5c 45 54 20 32 2e 35 35 20 6c 69 6e 75   ion\ET 2.55 linu
+0050  78 2d 69 33 38 36 20 4d 61 79 20 32 37 20 32 30   x-i386 May 27 20
+0060  30 33 22 0a                                       03".  
+
+TODO: description
+
+
+11.4. motd
+----------
+(UDP, Master:27951 -> Client)
+
+0000  ff ff ff ff 6d 6f 74 64 20 22 63 68 61 6c 6c 65   ....motd "challe
+0010  6e 67 65 5c 38 32 32 32 38 33 31 36 38 5c 6d 6f   nge\822283168\mo
+0020  74 64 5c 46 75 6c 6c 20 76 65 72 73 69 6f 6e 20   td\Full version 
+0030  6e 6f 77 20 61 76 61 69 6c 61 62 6c 65 20 66 6f   now available fo
+0040  72 20 64 6f 77 6e 6c 6f 61 64 21 21 5c 22         r download!!\"
+
+TODO: description
+
+
+11.5. getservers
+----------------
+(UDP, Client -> Master:27950)
+
+0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 20 38   ....getservers 8
+0010  32 20 66 75 6c 6c 20 65 6d 70 74 79               2 full empty
+
+TODO: description
+
+
+11.6. getserversResponse
+------------------------
+(UDP, Master:27950 -> Client)
+
+0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 52 65   ....getserversRe
+0010  73 70 6f 6e 73 65 5c cf 6f aa 7a 6d 60 5c a1 35   sponse\.o.zm`\.5
+0020  21 05 6d 38 5c 45 4f 54                           !.m8\EOT
+
+TODO: description
+
+
+11.7. getinfo
+-------------
+(UDP, Client -> Server)
+
+0000  ff ff ff ff 67 65 74 69 6e 66 6f 20 78 78 78      ....getinfo xxx
+
+TODO: description
+
+
+11.8. infoResponse
+------------------
+(UDP, Server -> Client)
+
+0000  ff ff ff ff 69 6e 66 6f 52 65 73 70 6f 6e 73 65   ....infoResponse
+0010  0a 5c 63 68 61 6c 6c 65 6e 67 65 5c 78 78 78 5c   .\challenge\xxx\
+0020  70 72 6f 74 6f 63 6f 6c 5c 38 32 5c 68 6f 73 74   protocol\82\host
+0030  6e 61 6d 65 5c 5e 35 46 72 61 67 67 65 72 73 48   name\^5FraggersH
+0040  65 61 76 65 6e 20 5e 38 6e 30 6c 61 6d 65 5c 73   eaven ^8n0lame\s
+0050  65 72 76 65 72 6c 6f 61 64 5c 38 5c 6d 61 70 6e   erverload\8\mapn
+0060  61 6d 65 5c 62 61 74 74 65 72 79 5c 63 6c 69 65   ame\battery\clie
+0070  6e 74 73 5c 31 34 5c 73 76 5f 6d 61 78 63 6c 69   nts\14\sv_maxcli
+0080  65 6e 74 73 5c 31 34 5c 67 61 6d 65 74 79 70 65   ents\14\gametype
+0090  5c 34 5c 70 75 72 65 5c 31 5c 73 76 5f 61 6c 6c   \4\pure\1\sv_all
+00a0  6f 77 41 6e 6f 6e 79 6d 6f 75 73 5c 30 5c 66 72   owAnonymous\0\fr
+00b0  69 65 6e 64 6c 79 46 69 72 65 5c 31 5c 6d 61 78   iendlyFire\1\max
+00c0  6c 69 76 65 73 5c 30 5c 6e 65 65 64 70 61 73 73   lives\0\needpass
+00d0  5c 30 5c 70 75 6e 6b 62 75 73 74 65 72 5c 31 5c   \0\punkbuster\1\
+00e0  67 61 6d 65 6e 61 6d 65 5c 65 74 5c 67 5f 61 6e   gamename\et\g_an
+00f0  74 69 6c 61 67 5c 31 5c 77 65 61 70 72 65 73 74   tilag\1\weaprest
+0100  72 69 63 74 5c 32 30 5c 62 61 6c 61 6e 63 65 64   rict\20\balanced
+0110  74 65 61 6d 73 5c 31                              teams\1
+
+TODO: description
+
+
+11.9. getchallenge
+------------------
+(UDP, Client -> Server)
+
+0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65   ....getchallenge
+
+TODO: description
+
+11.10. challengeResponse
+------------------------
+(UDP, Server -> Client)
+
+0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 52 65 73   ....challengeRes
+0010  70 6f 6e 73 65 20 33 37 37 36 39 30 30 37 32      ponse 377690072
+
+TODO: description
+
+11.11. print
+------------
+(UDP, Server -> Client)
+
+0000  ff ff ff ff 70 72 69 6e 74 0a 53 65 72 76 65 72   ....print.Server
+0010  20 69 73 20 66 75 6c 6c 2e 0a                     is full..
+
+TODO: description
+
+--
+
+12. Links
 =========
 
 QStat - http://www.qstat.org
@@ -2291,7 +2491,7 @@ Luigi Auriemma's homepage - http://aluigi.altervista.org
 QuakeForge - http://www.quakeforge.net
 
 
-Last modified: 2005-05-19 Andre' Schulz
+Last modified: 2005-05-25 Andre' Schulz
 
 (C) Copyright 2003,2004,2005 Ingo Rohlfs & Andre' Schulz
 Released under GPL

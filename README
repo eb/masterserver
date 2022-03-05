@@ -1,5 +1,5 @@
-masterserver v0.4
------------------
+masterserver v0.4.1
+-------------------
 
 1. Introduction
 2. Goals
@@ -53,6 +53,8 @@ Note on Q3 plugin:
 	So you can't run both a EF and Q3 Master on the same IP address. By
 	default, both plugins will be installed. So you'll have to delete one of
 	them.
+	If you want to serve lists for both games you have to start 2 masterservers
+	which use 2 different plugin directories and are bound to different IPs.
 
 Note on Q2/H2 plugins:
 	They're very similar because Heretic2 is based on the Q2 engine. Both
@@ -75,6 +77,8 @@ Note on EF plugin:
 	So you can't run both a EF and Q3 Master on the same IP address. By
 	default, both plugins will be installed. So you'll have to delete one of
 	them.
+	If you want to serve lists for both games you have to start 2 masterservers
+	which use 2 different plugin directories and are bound to different IPs.
 
 The usual "make; make install".
 
@@ -196,5 +200,5 @@ QuakeForge <http://www.quakeforge.net>
 ID Software <http://www.idsoftware.com>
 	releasing their old engines under the GPL
 
-Last modified: 2005-05-21 by Andre' Schulz
+Last modified: 2005-05-28 by Andre' Schulz
 

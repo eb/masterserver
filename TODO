@@ -13,10 +13,14 @@ Coming up next:
 	- a/c/d
 	- a/c/d/C
 - D3 test suite
+	- fix byte-order in heartbeat-getServers
 - EF test suite
-- HexenWorld plugin
+- ET test suite
+- RW test suite
 - more detailed packet description in docs/PROTOCOLS
   (e.g. when are the packets sent?, what is their purpose?)
+- maybe create 1 id software plugin which supports q3, ef, rw, et, ...
+  to resolve the port collision problem
 
 Near future:
 - implement some anti spamming/DoS or throttling system to prevent DoS attacks
@@ -35,11 +39,11 @@ More or less far future:
 - Stats
 - admin commands/interface via network
 	- ability to load/unload plugins on-the-fly
-- libq3: implement "getKeyAuthorize"
+- libq3: implement authorization code
 - libq3: implement player statistics(?)
 - include a database interface in masterserver
   (the one from devil)
 - Check RakNet Master source code
 
-Last modified: 2005-05-21 by Andre' Schulz
+Last modified: 2005-05-28 by Andre' Schulz
 

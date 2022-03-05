@@ -1,3 +1,39 @@
+2005-05-28	Andre' Schulz	<chickenman@exhale.de>
+* plugins/libd3.c
+	added 3 variables to private data
+	fixed port byte-order in "servers" packet
+	minor change
+	bumped version number to 0.1.1
+
+* masterserver.h
+	bumped version number to 0.4.1
+
+* README
+	added a note on how to resolve port collision of Q3 and EF plugins
+
+* NEWS
+	added info on 0.4.1 release
+
+
+2005-05-26	Andre' Schulz	<chickenman@exhale.de>
+* docs/PROTOCOLS
+	added Enemy Territory section
+	minor changes and fixes
+
+* plugins/Makefile
+	added libet and librw targets
+
+* plugins/libet.c
+	new
+
+* plugins/librw.c
+	new
+
+* plugins/libexample.c
+	bumped version number to 0.4
+	added some comments
+
+
 2005-05-21	Andre' Schulz	<chickenman@exhale.de>
 * README
 	give credit to <XL*g0b>

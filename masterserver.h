@@ -9,7 +9,7 @@
 
 int debug = 0; // global debug var
 int master_shutdown = 0; // to signal graceful shutdown (by sigint handler)
-char masterserver_version[] = "0.4";
+char masterserver_version[] = "0.4.1";
 
 // XXX: merge struct in_addr and in_port_t to struct sockaddr_in ?
 typedef struct {
