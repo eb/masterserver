@@ -16,13 +16,23 @@
  * along with masterserver; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * The author can be contacted at andre@malchen.de
+ * The author can be contacted at chickenman@exhale.de
+ */
+/*
+ * vim:sw=4:ts=4
  */
 
-#include "../masterserver.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <pthread.h>
+#include <sys/socket.h> // for socket() etc.
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <math.h>
 
-// for future use
-// #define Q3M_PROTOCOL IPPROTO_UDP
+#include "../masterserver.h"
 
 #define HEARTBEAT_TIMEOUT 300
 
@@ -56,12 +66,12 @@ const char	q3_pkt_motd[]		= "\xff\xff\xff\xffmotd \"challenge\\%d\\motd\\%s\\\""
 const int	q3_pkt_motd_len		= 28;
 const char	q3_pkt_footer[]		= "\\EOT";
 const int	q3_pkt_footer_len	= 4;
-const char	q3_pkt_delimiter[]	= "\\";
-const char	q3_pkt_delimiter2[] = " ";
-const char	q3_pkt_delimiter3[]	= "\n";
 
-const char q3m_plugin_version[] = "0.7.2";
-static int q3m_ports[] = { 27950, 27951 };
+const char q3m_plugin_version[] = "0.8";
+static port_t q3m_ports[] = {	{ IPPROTO_UDP, 27950 },	// master
+								{ IPPROTO_UDP, 27951 },	// motd
+								// { IPPROTO_UDP, 27952 }, // auth
+							};
 
 // player info
 typedef struct {
@@ -99,18 +109,18 @@ typedef struct {
 	// following is information not in packet
 	int _players; // # of players
 	int _challenge; // our challenge #
-	// TODO: what about custom cvars (Administrator, ...) ?
 } q3m_private_data_t;
 
-static void info(void); // print information about plugin
-static int process(char *packet); // process packet and return a value
-static int process_heartbeat(char *packet);
-static int process_getservers(char *packet);
-static int send_getstatus();
-static int process_statusResponse(char *packet);
-static void cleanup(void);
-//void init_plugin(void) __attribute__ ((constructor));
-void init_plugin(void) __attribute__ ((constructor)); 
+static void	info(void); // print information about plugin
+static void	free_privdata(void *);
+static int	process(char *, int); // process packet and return a value
+static int	process_getmotd(char *, int);
+static int	process_getservers(char *);
+static int	process_heartbeat(char *);
+static int	send_getstatus();
+static int	process_statusResponse(char *, int);
+static void	cleanup(void);
+void		init_plugin(void) __attribute__ ((constructor)); 
 
 static
 struct masterserver_plugin q3m
@@ -119,10 +129,10 @@ struct masterserver_plugin q3m
 	masterserver_version,
 	q3m_ports,
 	2,
-//	Q3M_PROTOCOL, // for future use
 	HEARTBEAT_TIMEOUT,
 	&info,
 	&process,
+	&free_privdata,
 	&cleanup
 };
 
@@ -133,11 +143,30 @@ info(void)
 	INFO("  compiled for masterserver v%s\n", masterserver_version);
 }
 
+static void
+free_privdata(void *data)
+{
+    int i;
+	q3m_private_data_t *privdata = (q3m_private_data_t *) data;
+
+	if (data == NULL) return;
+
+    free(privdata->sv_hostname);
+    free(privdata->version);
+    free(privdata->mapname);
+    free(privdata->gamename);
+    for (i = 0; i < privdata->_players; i++)
+        free(privdata->_player[i].name);
+    free(privdata->_player);
+	free(privdata);
+}
+
 static int
 process_heartbeat(char *packet)
 {
 	int server_dup = 0;
 	int time_diff, i;
+	serverlist_t *backup_ptr;
 
 	// first, check if server is already in our list
 	for (i = 0; i < q3m.num_servers; i++) {
@@ -154,12 +183,10 @@ process_heartbeat(char *packet)
 			inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 	// if not, then add it to the list
 	if (server_dup == 0) {
+		// server is not in our list so add its ip, port and a timestamp
 		q3m.list[q3m.num_servers].ip = q3m.client.sin_addr;
-		DEBUG("client address added\n");
 		q3m.list[q3m.num_servers].port = q3m.client.sin_port;
-		DEBUG("client port added\n");
 		q3m.list[q3m.num_servers].lastheartbeat = time(NULL);
-		DEBUG("client heartbeat timestamp added\n");
 		DEBUG("this is server no.: %d | lastheartbeat: %d\n",
 				q3m.num_servers, q3m.list[q3m.num_servers].lastheartbeat);
 		// allocate memory for private data
@@ -171,17 +198,16 @@ process_heartbeat(char *packet)
 				q3m.num_servers * sizeof(serverlist_t),
 				(q3m.num_servers+1) * sizeof(serverlist_t));
 
+		// back up the current list pointer in case realloc() fails
+		backup_ptr = q3m.list;
 		q3m.list = (serverlist_t *) realloc(q3m.list, ((q3m.num_servers+1)*sizeof(serverlist_t)));
 		if (q3m.list == NULL) {
-			//WARNING("can't increase q3m.list size; out of memory!\n");
-			ERRORV("realloc() failed trying to get %d bytes!\n",
+			WARNING("realloc() failed trying to get %d bytes!\n",
 					(q3m.num_servers+1)*sizeof(serverlist_t));
 			// since the pointer is overwritten with NULL
-			// we can't recover; so just exit here
-			// XXX: maybe save the old pointer somewhere so
-			//		we can continue?
-			// FIXME: don't pthread_exit() here instead return -3 or so
-			pthread_exit((void *) -1);
+			// we'll recover by using the backup pointer
+			q3m.list = backup_ptr;
+			return -2;
 		} else DEBUG("reallocation successful\n");
 	} else {
 		time_diff = time(NULL) - q3m.list[i].lastheartbeat;
@@ -208,7 +234,7 @@ send_getstatus()
 {
 	int challenge, i;
 
-	// create challenge
+	// create challenge number
 	challenge = rand();
 	DEBUG("challenge: %d\n", challenge);
 
@@ -223,7 +249,7 @@ send_getstatus()
 
 	// q3m.msg_out_length[0] = q3_pkt_header_len + q3_pkt_getstatus_len;
 	q3m.msg_out_length[0] = q3_pkt_header_len
-			+ q3_pkt_getstatus_len + (int)(sizeof(int)*2.5)+1;
+			+ q3_pkt_getstatus_len + (int)(sizeof(int)*2.5);
 
 	// allocate the memory for the outgoing packet
 	q3m.msg_out = calloc(1, sizeof(char *));
@@ -232,19 +258,16 @@ send_getstatus()
 		return -2; // TODO: define retval for errors
 	}
 
-	DEBUG("calloc(%d, %d) total: %d\n", q3m.msg_out_length[0], sizeof(char),
-			q3m.msg_out_length[0]+sizeof(char));
-	q3m.msg_out[0] = calloc(q3m.msg_out_length[0], sizeof(char));
+	q3m.msg_out[0] = calloc(q3m.msg_out_length[0]+1, 1);
 	if (q3m.msg_out[0] == NULL) {
 		ERRORV("calloc() failed trying to get %d bytes!\n",
-				q3m.msg_out_length[0]*sizeof(char));
+				q3m.msg_out_length[0]);
 		return -2; // TODO: define retval for errors
 	}
-	DEBUG("allocated %d bytes for msg_out[0]\n", q3m.msg_out_length[0]);
+	DEBUG("allocated %d bytes for msg_out[0]\n", q3m.msg_out_length[0]+1);
 
 	memcpy(q3m.msg_out[0], q3_pkt_header, q3_pkt_header_len);
 	memcpy(q3m.msg_out[0]+q3_pkt_header_len, q3_pkt_getstatus, q3_pkt_getstatus_len);
-	// FIXME: write challenge into packet
 	sprintf(q3m.msg_out[0]+q3_pkt_header_len+q3_pkt_getstatus_len, "%d", challenge);
 
 	// write challenge into serverlist
@@ -262,179 +285,97 @@ send_getstatus()
 static int
 process_getservers(char *packet)
 {
-	int i, pkt_offset, pkt_servers = 0; // temp vars
+	int i, j, pkt_offset; // temp vars
 	int getsrv_protocol;
-	char *temp_start, *temp_end, *temp_string;
+	char *temp;
 	q3m_private_data_t *temp_priv_data;
 
 	INFO("getservers from %s:%u\n",
 			inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 
 	// we need the protocol version from the packet so we parse it
-	temp_start = packet+q3_pkt_header_len+q3_pkt_getsrv_len;
-	temp_end = strpbrk(temp_start+1, q3_pkt_delimiter2);
-	if (temp_end == NULL)
-		temp_end = packet+strlen(packet);
-	temp_string = (char *) malloc((temp_end-temp_start)*sizeof(char));
-	if (temp_string == NULL) {
-		ERRORV("malloc() failed trying to get %d bytes!\n",
-			(temp_end-temp_start)*sizeof(char));
-		return -2;
-	}
-	strncpy(temp_string, temp_start+1, (temp_end-temp_start)-1);
-	temp_string[(temp_end-temp_start)-1] = '\0';
-	getsrv_protocol = atoi(temp_string);
-	free(temp_string);
+	temp = packet+q3_pkt_header_len+q3_pkt_getsrv_len+1;
+	getsrv_protocol = atoi(temp);
+	DEBUG("requested protocol is %d\n", getsrv_protocol);
 
 	// got the protocol version now we can assemble the outgoing packet(s)
 	DEBUG("assembling server list packet\n");
 
 	/*
-	 * This is the new, badly documented packet assembler.
+	 * packet assembler follows
 	 */
-	q3m.msg_out = malloc(sizeof(char *));
-	if (q3m.msg_out == NULL) {
-		ERRORV("malloc() failed trying to get %d bytes!\n", sizeof(char *));
-		return -2;
-	}
-
-	q3m.msg_out_length = malloc(sizeof(int));
-	if (q3m.msg_out_length == NULL) {
-		ERRORV("malloc() failed trying to get %d bytes!\n", sizeof(int));
-		return -2;
-	}
-
-	// get memory for header and command
-	q3m.msg_out[q3m.num_msgs] = malloc((q3_pkt_header_len+q3_pkt_getsrvrsp_len)*sizeof(char));
-	if (q3m.msg_out[q3m.num_msgs] == NULL) {
-		ERRORV("malloc() failed trying to get %d bytes!\n",
-				(q3_pkt_header_len+q3_pkt_getsrvrsp_len)*sizeof(char));
-		return -2;
-	}
-
-	// write header and command into packet
-	memcpy(q3m.msg_out[q3m.num_msgs], q3_pkt_header, q3_pkt_header_len);
-	pkt_offset = q3_pkt_header_len;
-	memcpy(q3m.msg_out[q3m.num_msgs]+pkt_offset, q3_pkt_getsrvrsp, q3_pkt_getsrvrsp_len);
-	pkt_offset += q3_pkt_getsrvrsp_len;
 
 	// walk the server list
-	for (i = 0; i < q3m.num_servers; i++) {
-		temp_priv_data = (q3m_private_data_t *) q3m.list[i].private_data;
-		// if the protocol matches, write ip/port into the packet
-		if (temp_priv_data->protocol == getsrv_protocol) {
-			// check if we need to create a new packet
-			if (pkt_servers == 112) {
-				DEBUG("pkt_offset: %d\n", pkt_offset);
-				// packet is full so mark the end with footer and null terminate
-				q3m.msg_out[q3m.num_msgs] = realloc(q3m.msg_out[q3m.num_msgs],
-						(pkt_offset+q3_pkt_footer_len+1)*sizeof(char));
-				if (q3m.msg_out[q3m.num_msgs] == NULL) {
-					ERRORV("realloc() failed trying to get %d bytes!\n",
-							(pkt_offset+q3_pkt_footer_len+1)*sizeof(char *));
-					return -2;
-				}
-				memcpy(q3m.msg_out[q3m.num_msgs]+pkt_offset, q3_pkt_footer, q3_pkt_footer_len);
-				pkt_offset += q3_pkt_footer_len;
-				q3m.msg_out[q3m.num_msgs][pkt_offset] = '\0';
-				DEBUG("pkt_offset: %d\n", pkt_offset);
-				q3m.msg_out_length[q3m.num_msgs] = pkt_offset;
-				DEBUG("q3m.msg_out_length[%d] = %d\n", q3m.num_msgs, pkt_offset);
+	for (i = j = 0; (j < q3m.num_servers) || (q3m.num_msgs == 0); i++) {
+		q3m.num_msgs++;
 
-				// and allocate memory for next packet
-				q3m.num_msgs++;
-				q3m.msg_out = realloc(q3m.msg_out, (q3m.num_msgs+1)*sizeof(char *));
-				if (q3m.msg_out == NULL) {
-					ERRORV("realloc() failed trying to get %d bytes!\n",
-							(q3m.num_msgs+1)*sizeof(char *));
-					return -2;
-				}
-
-				q3m.msg_out_length = realloc(q3m.msg_out_length, (q3m.num_msgs+1)*sizeof(int));
-				if (q3m.msg_out_length == NULL) {
-					ERRORV("realloc() failed trying to get %d bytes!\n",
-							(q3m.num_msgs+1)*sizeof(int));
-					return -2;
-				}
-
-				// get memory for the next server
-				DEBUG("q3m.num_msgs: %d\n", q3m.num_msgs);
-				q3m.msg_out[q3m.num_msgs] = malloc((q3_pkt_header_len+q3_pkt_getsrvrsp_len)*sizeof(char));
-				if (q3m.msg_out[q3m.num_msgs] == NULL) {
-					ERRORV("malloc() failed trying to get %d bytes!\n",
-							(q3_pkt_header_len+q3_pkt_getsrvrsp_len)*sizeof(char));
-					return -2;
-				}
-
-				// add header and command to packet
-				memcpy(q3m.msg_out[q3m.num_msgs], q3_pkt_header, q3_pkt_header_len);
-				pkt_offset = q3_pkt_header_len;
-				memcpy(q3m.msg_out[q3m.num_msgs]+pkt_offset, q3_pkt_getsrvrsp, q3_pkt_getsrvrsp_len);
-				pkt_offset += q3_pkt_getsrvrsp_len;
-
-				// reset the server counter
-				pkt_servers = 0;
-			}
-
-			q3m.msg_out[q3m.num_msgs] = realloc(q3m.msg_out[q3m.num_msgs],
-					(pkt_offset+7)*sizeof(char));
-			if (q3m.msg_out[q3m.num_msgs] == NULL) {
-				ERRORV("realloc() failed trying to get %d bytes!\n",
-						(pkt_offset+7)*sizeof(char));
-				return -2;
-			}
-
-			// copy data from server list into packet
-			memcpy(q3m.msg_out[q3m.num_msgs]+pkt_offset, q3_pkt_delimiter, 1);
-			pkt_offset++;
-			memcpy(q3m.msg_out[q3m.num_msgs]+pkt_offset, &q3m.list[i].ip, 4);
-			pkt_offset += 4;
-			memcpy(q3m.msg_out[q3m.num_msgs]+pkt_offset, &q3m.list[i].port, 2);
-			pkt_offset += 2;
-			pkt_servers++;
+		// allocate memory for the packets
+		q3m.msg_out = realloc(q3m.msg_out, q3m.num_msgs*sizeof(char *));
+		if (q3m.msg_out == NULL) {
+			ERRORV("malloc() failed to get %d bytes!\n", q3m.num_msgs*sizeof(char *));
+			return -2;
 		}
-	}
+		q3m.msg_out_length = realloc(q3m.msg_out_length, q3m.num_msgs*sizeof(int));
+		if (q3m.msg_out_length == NULL) {
+			ERRORV("malloc() failed to get %d bytes!\n", q3m.num_msgs*sizeof(int));
+			return -2;
+		}
 
-	DEBUG("pkt_offset: %d\n", pkt_offset);
-	// packet is full so mark the end with footer and null terminate
-	q3m.msg_out[q3m.num_msgs] = realloc(q3m.msg_out[q3m.num_msgs],
-			(pkt_offset+q3_pkt_footer_len+1)*sizeof(char));
-	if (q3m.msg_out[q3m.num_msgs] == NULL) {
-		ERRORV("realloc() failed trying to get %d bytes!\n",
-				(pkt_offset+q3_pkt_footer_len+1)*sizeof(char));
-		return -2;
-	}
-	memcpy(q3m.msg_out[q3m.num_msgs]+pkt_offset, q3_pkt_footer, q3_pkt_footer_len);
-	pkt_offset += q3_pkt_footer_len;
-	q3m.msg_out[q3m.num_msgs][pkt_offset] = '\0';
-	DEBUG("pkt_offset: %d\n", pkt_offset);
-	q3m.msg_out_length[q3m.num_msgs] = pkt_offset;
-	DEBUG("q3m.msg_out_length[%d] = %d\n", q3m.num_msgs, pkt_offset);
+		// get memory for header and command
+		q3m.msg_out[i] = malloc(811);
+		if (q3m.msg_out[i] == NULL) {
+			ERROR("malloc() failed to get 811 bytes!\n");
+			return -2;
+		}
 
-	q3m.num_msgs++;
+		// write header and command into packet
+		memcpy(q3m.msg_out[i], q3_pkt_header, q3_pkt_header_len);
+		pkt_offset = q3_pkt_header_len;
+		memcpy(q3m.msg_out[i]+pkt_offset, q3_pkt_getsrvrsp, q3_pkt_getsrvrsp_len);
+		pkt_offset += q3_pkt_getsrvrsp_len;
+
+		for (; (j < q3m.num_servers) && (pkt_offset < 806); j++) {
+			temp_priv_data = (q3m_private_data_t *) q3m.list[j].private_data;
+			// if the protocol matches, write ip/port into the packet
+			if (temp_priv_data->protocol == getsrv_protocol) {
+				// copy data from server list into packet
+				memcpy(q3m.msg_out[i]+pkt_offset, "\\", 1);
+				pkt_offset++;
+				memcpy(q3m.msg_out[i]+pkt_offset, &q3m.list[j].ip, 4);
+				pkt_offset += 4;
+				memcpy(q3m.msg_out[i]+pkt_offset, &q3m.list[j].port, 2);
+				pkt_offset += 2;
+			}
+		} // for j < 112
+
+		// write footer
+		memcpy(q3m.msg_out[i]+pkt_offset, q3_pkt_footer, q3_pkt_footer_len);
+		pkt_offset += q3_pkt_footer_len;
+		q3m.msg_out[i][pkt_offset] = '\0';
+		q3m.msg_out_length[i] = pkt_offset;
+		DEBUG("q3m.msg_out_length[%d] = %d\n", i, pkt_offset);
+	}
 
 	// packet with server list is ready
 	return 1;
 }
 
 static int
-process_statusResponse(char *packet)
+process_statusResponse(char *packet, int packetlen)
 {
-	char *temp_start = NULL, *temp_end = NULL, *temp_end2 = NULL;
-	char *temp_pkt = NULL, *temp_plr = NULL;
-	char *temp_varname = NULL, *temp_value = NULL;
-	char *temp_string = NULL;
-	int temp_offset, temp_size, i, serv_num;
-	int server_dup = 0;
+	char *varname = NULL, *value = NULL;
+	char *score = NULL, *ping = NULL, *name = NULL;
+	int i;
+	int server_dup = 0, done = 0;
+	char *packetend = packet+packetlen;
 	q3m_private_data_t *private_data = calloc(1, sizeof(q3m_private_data_t));
-	q3m_private_data_t *temp;
+	q3m_private_data_t *oldprivdata;
 
 	// check if source address is known
 	for (i = 0; i < q3m.num_servers; i++) {
 		if ((q3m.client.sin_addr.s_addr == q3m.list[i].ip.s_addr)
 				&& (q3m.client.sin_port == q3m.list[i].port)) {
 			server_dup = 1;
-			serv_num = i;
 			break;
 		}
 	}
@@ -446,299 +387,265 @@ process_statusResponse(char *packet)
 		return -1;
 	}
 
-	temp = (q3m_private_data_t *) q3m.list[serv_num].private_data;
+	oldprivdata = (q3m_private_data_t *)q3m.list[i].private_data;
 
-	// parse server/player info and isolate server info
-	// the 1st "\n" is after the command
-	temp_start = strpbrk(packet, "\n");
-	temp_offset = temp_start - packet;
-	// the 2nd "\n" marks the end of the server info
-	// this also marks the beginning of player info
-	temp_end = strpbrk(packet+temp_offset+1, "\n");
-	temp_size = temp_end - temp_start;
-	temp_pkt = (char *) malloc(temp_size*sizeof(char));
-	if (temp_pkt == NULL) {
-		ERRORV("malloc() failed trying to get %d bytes!\n",
-				temp_size*sizeof(char));
-		return -2;
+	// go to 1st "\" which is after the command string
+	packet = strpbrk(packet, "\\");
+	if (packet == NULL) {
+		WARNING("malformed statusResponse packet received from %s:%d!\n",
+			inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
+		return -1;
 	}
-	// isolate/copy the server info into temp_pkt
-	strncpy(temp_pkt, packet+temp_offset+1, temp_size-1);
-	temp_pkt[temp_size-1] = '\0';
-	temp_end2 = temp_pkt+temp_size-1;
-	// begin parsing the server info
+
 	DEBUG("begin parsing server info\n");
-	DEBUG("%p < %p => %d\n", temp_start+1, temp_end2, (temp_start+1<temp_end2));
-	for (	temp_start = strpbrk(temp_pkt, "\\");
-			temp_start+1 < temp_end2;
-			temp_start = temp_end)
+	while ((++packet < packetend) && !done)
 	{
-		temp_end = strpbrk(temp_start+1, "\\");
-		// calculate # of chars
-		temp_size = temp_end - temp_start;
-		// allocate memory
-		temp_varname = (char *) malloc(temp_size*sizeof(char));
-		if (temp_varname == NULL) {
-			ERRORV("malloc() failed trying to get %d bytes!\n",
-					temp_size*sizeof(char));
+		// get variable name
+		varname = packet;
+
+		// go to next delimiter
+		packet = strpbrk(packet, "\\");
+		if (packet == NULL) {
+			ERRORV("malformed statusResponse packet received from %s:%d!\n",
+				inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 			return -2;
 		}
-		// copy it into a temporary buffer
-		strncpy(temp_varname, temp_start+1, temp_size-1);
-		// don't forget \0
-		temp_varname[temp_size-1] = '\0';
+		// overwrite delimiter with \0
+		*packet = '\0';
 
-		// previous end posiion is now start position
-		temp_start = temp_end;
-		// get position of next delimiter
-		temp_end = strpbrk(temp_end+1, "\\");
-		// check if we're at the end of the varname/value pairs
-		if (temp_end == NULL)
-			temp_end = &temp_pkt[strlen(temp_pkt)];
-		// calculate # of chars
-		temp_size = temp_end - temp_start;
-		// allocate memory
-		temp_value = (char *) malloc(temp_size*sizeof(char));
-		if (temp_value == NULL) {
-			ERRORV("malloc() failed trying to get %d bytes!\n",
-					temp_size*sizeof(char));
+		// get value
+		value = ++packet;
+
+		// go to next delimiter
+		packet = strpbrk(packet, "\\\n");
+		if (packet == NULL) {
+			ERRORV("malformed statusResponse packet received from %s:%d!\n",
+				inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 			return -2;
 		}
-		// copy chars into temporary buffer
-		strncpy(temp_value, temp_start+1, temp_size-1);
-		// don't forget \0
-		temp_value[temp_size-1] = '\0';
 
+		// check if we're at the end of the server info section
+		if (*packet == '\n') done = 1;
+		// overwrite delimiter with \0
+		*packet = '\0';
+
+		DEBUG("varname = \"%s\", value = \"%s\"\n", varname, value);
 		// parse varname and assign the value to the struct
-		if (strcmp(temp_varname, "challenge") == 0) {
-			private_data->challenge = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "sv_punkbuster") == 0) {
-			private_data->sv_punkbuster = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "g_maxGameClients") == 0) {
-			private_data->g_maxGameClients = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "capturelimit") == 0) {
-			private_data->capturelimit = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "sv_maxclients") == 0) {
-			private_data->sv_maxclients = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "timelimit") == 0) {
-			private_data->timelimit = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "fraglimit") == 0) {
-			private_data->fraglimit = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "dmflags") == 0) {
-			private_data->dmflags = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "sv_maxPing") == 0) {
-			private_data->sv_maxPing = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "sv_minPing") == 0) {
-			private_data->sv_minPing = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "sv_hostname") == 0) {
-			private_data->sv_hostname = temp_value;
-		} else if (strcmp(temp_varname, "sv_maxRate") == 0) {
-			private_data->sv_maxRate = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "sv_floodProtect") == 0) {
-			private_data->sv_floodProtect = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "version") == 0) {
-			private_data->version = temp_value;
-		} else if (strcmp(temp_varname, "g_gametype") == 0) {
-			private_data->g_gametype = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "protocol") == 0) {
-			private_data->protocol = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "mapname") == 0) {
-			private_data->mapname = temp_value;
-		} else if (strcmp(temp_varname, "sv_privateClients") == 0) {
-			private_data->sv_privateClients = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "sv_allowDownload") == 0) {
-			private_data->sv_allowDownload = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "bot_minplayers") == 0) {
-			private_data->bot_minplayers = atoi(temp_value);
-			free(temp_value);
-		} else if (strcmp(temp_varname, "gamename") == 0) {
-			private_data->gamename = temp_value;
-		} else if (strcmp(temp_varname, "g_needpass") == 0) {
-			private_data->g_needpass = atoi(temp_value);
-			free(temp_value);
-		} else {
-			// WARNING("unknown option \"%s\" in statusResponse ignored\n", temp_varname);
-			free(temp_value);
-		}
-		// free the temporary buffer
-		free(temp_varname);
+		if (strcmp(varname, "challenge") == 0) {
+			private_data->challenge = atoi(value);
+		} else if (strcmp(varname, "sv_punkbuster") == 0) {
+			private_data->sv_punkbuster = atoi(value);
+		} else if (strcmp(varname, "g_maxGameClients") == 0) {
+			private_data->g_maxGameClients = atoi(value);
+		} else if (strcmp(varname, "capturelimit") == 0) {
+			private_data->capturelimit = atoi(value);
+		} else if (strcmp(varname, "sv_maxclients") == 0) {
+			private_data->sv_maxclients = atoi(value);
+		} else if (strcmp(varname, "timelimit") == 0) {
+			private_data->timelimit = atoi(value);
+		} else if (strcmp(varname, "fraglimit") == 0) {
+			private_data->fraglimit = atoi(value);
+		} else if (strcmp(varname, "dmflags") == 0) {
+			private_data->dmflags = atoi(value);
+		} else if (strcmp(varname, "sv_maxPing") == 0) {
+			private_data->sv_maxPing = atoi(value);
+		} else if (strcmp(varname, "sv_minPing") == 0) {
+			private_data->sv_minPing = atoi(value);
+		} else if (strcmp(varname, "sv_hostname") == 0) {
+			private_data->sv_hostname = strdup(value);
+			if (private_data->sv_hostname == NULL) {
+				ERRORV("strdup() failed to get %d bytes!\n", strlen(value)+1);
+				return -2;
+			}
+		} else if (strcmp(varname, "sv_maxRate") == 0) {
+			private_data->sv_maxRate = atoi(value);
+		} else if (strcmp(varname, "sv_floodProtect") == 0) {
+			private_data->sv_floodProtect = atoi(value);
+		} else if (strcmp(varname, "version") == 0) {
+			private_data->version = strdup(value);
+			if (private_data->version == NULL) {
+				ERRORV("strdup() failed to get %d bytes!\n", strlen(value)+1);
+				return -2;
+			}
+		} else if (strcmp(varname, "g_gametype") == 0) {
+			private_data->g_gametype = atoi(value);
+		} else if (strcmp(varname, "protocol") == 0) {
+			private_data->protocol = atoi(value);
+		} else if (strcmp(varname, "mapname") == 0) {
+			private_data->mapname = strdup(value);
+			if (private_data->mapname == NULL) {
+				ERRORV("strdup() failed to get %d bytes!\n", strlen(value)+1);
+				return -2;
+			}
+		} else if (strcmp(varname, "sv_privateClients") == 0) {
+			private_data->sv_privateClients = atoi(value);
+		} else if (strcmp(varname, "sv_allowDownload") == 0) {
+			private_data->sv_allowDownload = atoi(value);
+		} else if (strcmp(varname, "bot_minplayers") == 0) {
+			private_data->bot_minplayers = atoi(value);
+		} else if (strcmp(varname, "gamename") == 0) {
+			private_data->gamename = strdup(value);
+			if (private_data->gamename == NULL) {
+				ERRORV("calloc() failed to get %d bytes!\n", strlen(value)+1);
+				return -2;
+			}
+		} else if (strcmp(varname, "g_needpass") == 0) {
+			private_data->g_needpass = atoi(value);
+		} //else {
+			// WARNING("unknown option \"%s\" in statusResponse ignored\n", varname);
+		//}
 	}
-	free(temp_pkt);
 	DEBUG("end parsing server info\n");
 
 	// parse player info
 	private_data->_players = 0;
-	temp_start = strpbrk(packet+q3_pkt_header_len+q3_pkt_statusrsp_len, "\n");
-	do { 
-		temp_offset = temp_start - packet;
-		temp_end = strpbrk(packet+temp_offset+1, "\n");
-		// if temp_end is NULL there are no players on the server and thus
-		// no info to parse
-		if (temp_end == NULL) break;
-		private_data->_players++;
+	while (++packet < packetend) {
+		// FIXME: recover from realloc() failure
 		private_data->_player = (q3m_player_data_t *) realloc(private_data->_player,
-				private_data->_players*sizeof(q3m_player_data_t));
+				(private_data->_players+1)*sizeof(q3m_player_data_t));
 		if (private_data->_player == NULL) {
 			ERRORV("realloc() failed trying to get %d bytes!\n",
 					private_data->_players*sizeof(q3m_player_data_t));
 			return -2;
 		}
-		temp_size = temp_end - temp_start;
 
-		// get the whole string
-		temp_string = (char *) malloc(temp_size*sizeof(char));
-		if (temp_string == NULL) {
-			ERRORV("malloc() failed trying to get %d bytes!\n",
-					temp_size*sizeof(char));
+		// get player score
+		score = packet;
+
+		// go to next delimiter
+		if ((packet = strpbrk(packet, " ")) == NULL) {
+			ERRORV("malformed statusResponse packet received from %s:%d!\n",
+				inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 			return -2;
 		}
-		strncpy(temp_string, packet+temp_offset+1, temp_size-1);
-		temp_string[temp_size-1] = '\0';
+		// overwrite delimiter
+		*packet = '\0';
 
 		// parse player score
-		temp_end = strpbrk(temp_string, " ");
-		temp_plr = (char *) malloc(temp_end-temp_string+1);
-		if (temp_plr == NULL) {
-			ERRORV("malloc() failed trying to get %d bytes!\n",
-					temp_end-temp_string+1);
+		private_data->_player[private_data->_players].score = atoi(score);
+
+		// get player ping
+		ping = ++packet;
+
+		// go to next delimiter
+		if ((packet = strpbrk(packet, " ")) == NULL) {
+			ERRORV("malformed statusResponse packet received from %s:%d!\n",
+				inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 			return -2;
 		}
-		strncpy(temp_plr, temp_string, temp_end - temp_string);
-		temp_plr[temp_end-temp_string] = '\0';
-		private_data->_player[private_data->_players-1].score = atoi(temp_plr);
-		free(temp_plr);
+		// overwrite delimiter
+		*packet = '\0';
 
 		// parse player ping
-		temp_start = temp_end;
-		temp_end = strpbrk(temp_start+1, " ");
-		temp_plr = (char *) malloc(temp_end-temp_start);
-		if (temp_plr == NULL) {
-			ERRORV("malloc() failed trying to get %d bytes!\n",
-					temp_end-temp_start);
+		private_data->_player[private_data->_players].ping = atoi(ping);
+
+		// get player name
+		name = ++packet;
+
+		// go to next delimiter
+		if ((packet = strpbrk(packet, "\n")) == NULL) {
+			ERRORV("malformed statusResponse packet received from %s:%d!\n",
+				inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port));
 			return -2;
 		}
-		strncpy(temp_plr, temp_start+1, temp_end - temp_start - 1);
-		temp_plr[temp_end-temp_start-1] = '\0';
-		private_data->_player[private_data->_players-1].ping = atoi(temp_plr);
-		free(temp_plr);
+		// overwrite delimiter
+		*packet = '\0';
 
 		// parse player name
-		temp_start = temp_end+1;
-		temp_end = strpbrk(temp_start+1, "\"");
-		private_data->_player[private_data->_players-1].name = (char *) malloc(temp_end-temp_start);
-		if (private_data->_player[private_data->_players-1].name == NULL) {
-			ERRORV("malloc() failed trying to get %d bytes!\n",
-					temp_end-temp_start);
+		private_data->_player[private_data->_players].name = strdup(name);
+		if (private_data->_player[private_data->_players].name == NULL) {
+			ERRORV("strdup() failed to get %d bytes!\n",
+					strlen(name)+1);
 			return -2;
 		}
-		strncpy(private_data->_player[private_data->_players-1].name,
-				temp_start+1, temp_end-temp_start-1);
-		private_data->_player[private_data->_players-1].name[temp_end-temp_start-1] = '\0';
 
-		free(temp_string);
-	} while ((temp_start = strpbrk(packet+temp_offset+1, "\n")));
+		DEBUG("player #%d name: \"%s\", ping: %d, score: %d\n",
+			private_data->_players, private_data->_player[private_data->_players].name,
+			private_data->_player[private_data->_players].ping,
+			private_data->_player[private_data->_players].score);
+
+		private_data->_players++;
+	}
 
 	// compare challenge to ours
-	if (private_data->challenge != temp->_challenge) {
+	if (private_data->challenge != oldprivdata->_challenge) {
 		WARNING("statusResponse challenge mismatch (%d != %d)\n",
-				private_data->challenge, temp->_challenge);
-		free(private_data->sv_hostname);
-		free(private_data->version);
-		free(private_data->mapname);
-		free(private_data->gamename);
-		for (i = 0; i < private_data->_players; i++)
-			free(private_data->_player[i].name);
-		free(private_data->_player);
-		free(private_data);
+				private_data->challenge, oldprivdata->_challenge);
+		free_privdata(private_data);
 		return -1;
 	}
 
 	// if we already have parsed server/player info we have to free it first
-	if (q3m.list[i].private_data != NULL) {
-		free(temp->sv_hostname);
-		free(temp->version);
-		free(temp->mapname);
-		free(temp->gamename);
-		for (i = 0; i < temp->_players; i++)
-			free(temp->_player[i].name);
-		free(temp->_player);
-		free(temp);
-	}
-	q3m.list[serv_num].private_data = private_data;
+	if (q3m.list[i].private_data != NULL) free_privdata(q3m.list[i].private_data);
+	q3m.list[i].private_data = private_data;
 
 	return 0;
 }
 
 static int
-process_getmotd(char *packet)
+process_getmotd(char *packet, int packetlen)
 {
 	char *version, *renderer, *challenge;
-	char *temp_start, *temp_end, *temp_varname, *temp_value;
-	int temp_size;
+	char *varname = NULL, *value = NULL;
+	char *packetend = packet+packetlen;
 
-	temp_start = packet+q3_pkt_header_len+q3_pkt_getmotd_len+2;
-	temp_end = strpbrk(temp_start+1, "\\");
-	if (temp_end == NULL) {
-		WARNING("invalid \"getmotd\" from %s:%d received; ignored\n",
-				inet_ntoa(q3m.client.sin_addr),
-				ntohs(q3m.client.sin_port));
-		return -1;
-	}
-	do {
-		temp_size = temp_end - temp_start;
-		temp_varname = (char *) malloc(temp_size*sizeof(char));
-		if (temp_varname == NULL) {
-			ERRORV("malloc() failed trying to get %d bytes!\n",
-					temp_size*sizeof(char));
-			return -2;
+	packet += q3_pkt_header_len+q3_pkt_getmotd_len+2;
+
+	while ((++packet < packetend) && (*packet != '\x0a')) {
+		// save position as variable name
+		varname = packet;
+
+		// go to next delimiter
+		packet = strpbrk(packet, "\\");
+		if (packet == NULL) {
+			WARNING("invalid \"getmotd\" from %s:%d received; ignored\n",
+					inet_ntoa(q3m.client.sin_addr),
+					ntohs(q3m.client.sin_port));
+			return -1;
 		}
-		strncpy(temp_varname, temp_start+1, temp_size-1);
-		temp_varname[temp_size-1] = '\0';
 
-		temp_start = temp_end;
-		temp_end = strpbrk(temp_start+1, "\\");
-		if (temp_end == NULL)
-			temp_end = packet+strlen(packet)-2;
-		temp_size = temp_end - temp_start;
-		temp_value = (char *) malloc(temp_size*sizeof(char));
-		if (temp_value == NULL) {
-			ERRORV("malloc() failed trying to get %d bytes!\n",
-					temp_size*sizeof(char));
-			return -2;
+		// overwrite delimiter with \0
+		*packet = '\0';
+
+		// save next position as value
+		value = ++packet;
+
+		// go to next delimiter
+		packet = strpbrk(packet, "\\\"");
+		if (packet == NULL) {
+			WARNING("invalid \"getmotd\" from %s:%d received; ignored\n",
+					inet_ntoa(q3m.client.sin_addr),
+					ntohs(q3m.client.sin_port));
+			return -1;
 		}
-		strncpy(temp_value, temp_start+1, temp_size-1);
-		temp_value[temp_size-1] = '\0';
 
-		if (strcmp(temp_varname, "version") == 0) {
-			version = temp_value;
-		} else if (strcmp(temp_varname, "renderer") == 0) {
-			renderer = temp_value;
-		} else if (strcmp(temp_varname, "challenge") == 0) {
-			challenge = temp_value;
+		// overwrite delimiter with \0
+		*packet = '\0';
+
+		// parse
+		if (strcmp(varname, "version") == 0) {
+			version = strdup(value);
+			if (version == NULL) {
+				ERRORV("strdup() failed to get %d bytes!\n", strlen(value)+1);
+				return -2;
+			}
+		} else if (strcmp(varname, "renderer") == 0) {
+			renderer = strdup(value);
+			if (renderer == NULL) {
+				ERRORV("strdup() failed to get %d bytes!\n", strlen(value)+1);
+				return -2;
+			}
+		} else if (strcmp(varname, "challenge") == 0) {
+			challenge = strdup(value);
+			if (challenge == NULL) {
+				ERRORV("strdup() failed to get %d bytes!\n", strlen(value)+1);
+				return -2;
+			}
 		} else {
 			WARNING("unknown variable \"%s\" in \"getmotd\" packet ignored\n",
-					temp_varname);
-			free(temp_value);
+					varname);
 		}
-		free(temp_varname);
-		temp_start = temp_end;
-	} while((temp_end = strpbrk(temp_start+1, "\\")));
+	}
 
 	INFO("getmotd from %s:%d running \"%s\" with a \"%s\"\n",
 			inet_ntoa(q3m.client.sin_addr), ntohs(q3m.client.sin_port),
@@ -757,24 +664,28 @@ process_getmotd(char *packet)
 				sizeof(int));
 		return -2;
 	}
-	q3m.msg_out_length[0] = q3_pkt_header_len+q3_pkt_motd_len+strlen(Q3M_MOTD)+10+1;
-	q3m.msg_out[0] = calloc(q3m.msg_out_length[0], sizeof(char));
+	q3m.msg_out_length[0] = q3_pkt_header_len+q3_pkt_motd_len
+							+ strlen(Q3M_MOTD)
+							+ (int)(sizeof(int)*2.5);
+	q3m.msg_out[0] = calloc(q3m.msg_out_length[0]+1, 1);
 	if (q3m.msg_out[0] == NULL) {
 		ERRORV("calloc() failed trying to get %d bytes!\n",
-				q3m.msg_out_length[0]*sizeof(char));
+				q3m.msg_out_length[0]);
 		return -2;
 	}
 	q3m.num_msgs = 1;
 	sprintf(q3m.msg_out[0], q3_pkt_motd, atoi(challenge), Q3M_MOTD);
 
+	// clean up
 	free(version);
 	free(renderer);
 	free(challenge);
+
 	return 1;
 }
 
 static int
-process(char *packet)
+process(char *packet, int packetlen)
 {
 	int retval;
 
@@ -792,9 +703,9 @@ process(char *packet)
 		} else if (strncmp(packet+q3_pkt_header_len, q3_pkt_getsrv, q3_pkt_getsrv_len) == 0) {
 			return process_getservers(packet);
 		} else if (strncmp(packet+q3_pkt_header_len, q3_pkt_statusrsp, q3_pkt_statusrsp_len) == 0) {
-			return process_statusResponse(packet);
+			return process_statusResponse(packet, packetlen);
 		} else if (strncmp(packet+q3_pkt_header_len, q3_pkt_getmotd, q3_pkt_getmotd_len) == 0) {
-			return process_getmotd(packet);
+			return process_getmotd(packet, packetlen);
 		}
 		WARNING("unknown packet received!\n");
 		return -1;
@@ -806,21 +717,11 @@ process(char *packet)
 static void
 cleanup(void)
 {
-	int i, j;
-	q3m_private_data_t *tmp_privdata;
+	int i;
 
 	if (q3m.num_servers > 0) {
 		for (i = 0; i < q3m.num_servers; i++) {
-			tmp_privdata = (q3m_private_data_t *) q3m.list[i].private_data;
-			for (j = 0; j < tmp_privdata->_players; j++)
-				free(tmp_privdata->_player[j].name);
-			free(tmp_privdata->_player);
-			free(tmp_privdata->version);
-			free(tmp_privdata->mapname);
-			free(tmp_privdata->gamename);
-			free(tmp_privdata->sv_hostname);
-			free(tmp_privdata);
-			free(q3m.list[i].private_data);
+			free_privdata(q3m.list[i].private_data);
 		}
 	}
 }

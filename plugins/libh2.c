@@ -16,13 +16,23 @@
  * along with masterserver; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * The author can be contacted at andre@malchen.de
+ * The author can be contacted at chickenman@exhale.de
  */
+/*
+ * vim:sw=4:ts=4
+ */
+
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <sys/socket.h> // for socket() etc.
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "../masterserver.h"
 
-// for future use
-// #define H2M_PROTOCOL IPPROTO_UDP
 #define HEARTBEAT_TIMEOUT 300
 
 #undef LOG_SUBNAME
@@ -44,16 +54,16 @@ const int	h2_pkt_ping_len		= 4;
 const char	h2_pkt_ack[]		= "ack";
 const int	h2_pkt_ack_len		= 3;
 
-const char h2m_plugin_version[] = "0.3.3";
-static int h2m_ports[] = { 28900 };
+const char h2m_plugin_version[] = "0.4";
+static port_t h2m_ports[] = { { IPPROTO_UDP, 28900 } };
 
-static void info(void); // print information about plugin
-static int process(char *packet); // process packet and return a value
-static int process_heartbeat(char *packet);
-static int process_shutdown(char *packet);
-static int process_ping(char *packet);
-static int process_query(char *packet);
-void init_plugin(void) __attribute__ ((constructor));
+static void	info(void); // print information about plugin
+static int	process(char *, int); // process packet and return a value
+static int	process_heartbeat(char *);
+static int	process_shutdown(char *);
+static int	process_ping(char *);
+static int	process_query(char *);
+void		init_plugin(void) __attribute__ ((constructor));
 
 static
 struct masterserver_plugin h2m
@@ -62,11 +72,11 @@ struct masterserver_plugin h2m
 	masterserver_version,
 	h2m_ports,
 	1,
-	// H2M_PROTOCOL, // for future use
 	HEARTBEAT_TIMEOUT,
 	&info,
 	&process,
-	NULL
+	NULL,	// free_privdata()
+	NULL	// cleanup()
 };
 
 static void
@@ -167,10 +177,10 @@ process_ping(char *packet)
 	}
 
 	// allocate memory for the packet itself
-	h2m.msg_out[0] = calloc(h2m.msg_out_length[0]+1, sizeof(char));
+	h2m.msg_out[0] = calloc(h2m.msg_out_length[0]+1, 1);
 	if (h2m.msg_out[0] == NULL) {
 		ERRORV("calloc() failed trying to get %d bytes!\n",
-				(h2m.msg_out_length[0]+1)*sizeof(char));
+				h2m.msg_out_length[0]+1);
 		return -2;
 	}
 
@@ -200,7 +210,7 @@ process_query(char *packet)
 	 * - length of command -> h2_pkt_servers_len
 	 * - delimiter between command and list
 	 * - number of servers in list
-	 *   -> h2m.num_servers * (sizeof(h2m.list[0].ip) + sizeof(h2m.list[0].port))
+	 *   -> h2m.num_servers * 6
 	 */
 
 	// allocate memory for msg_out_length array
@@ -216,12 +226,10 @@ process_query(char *packet)
 
 	h2m.msg_out_length[0] = h2_pkt_header_len
 					 + h2_pkt_servers_len
-					 + (h2m.num_servers
-						* (sizeof(h2m.list[0].ip) + sizeof(h2m.list[0].port)));
-	DEBUG("%d + %d + (%d * (%d + %d)) = %d\n",
+					 + (h2m.num_servers * 6);
+	DEBUG("%d + %d + (%d * 6) = %d\n",
 		h2_pkt_header_len, h2_pkt_servers_len,
-		h2m.num_servers, sizeof(h2m.list[0].ip), sizeof(h2m.list[0].port),
-		h2m.msg_out_length[0]);
+		h2m.num_servers, h2m.msg_out_length[0]);
 
 	// allocate memory for packet pointers
 	h2m.msg_out = calloc(1, sizeof(char *));
@@ -232,10 +240,10 @@ process_query(char *packet)
 	}
 
 	// allocate memory for the packet itself
-	h2m.msg_out[0] = calloc(h2m.msg_out_length[0]+1, sizeof(char));
+	h2m.msg_out[0] = calloc(h2m.msg_out_length[0]+1, 1);
 	if (h2m.msg_out[0] == NULL) {
 		ERRORV("calloc() failed trying to get %d bytes!\n",
-				(h2m.msg_out_length[0]+1)*sizeof(char));
+				h2m.msg_out_length[0]+1);
 		return -2; // TODO: define retval for errors
 	}
 
@@ -260,7 +268,7 @@ process_query(char *packet)
 } // process_query()
 
 static int
-process(char *packet)
+process(char *packet, int packetlen)
 {
 
 	// check if packet is h2 related

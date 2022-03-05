@@ -1,16 +1,6 @@
 #ifndef _MASTERSERVER_H
 #define _MASTERSERVER_H
 
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <pthread.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <math.h>
-
 #include "logging.h"
 
 #ifndef MASTERSERVER_LIB_DIR
@@ -18,7 +8,8 @@
 #endif
 
 int debug = 0; // global debug var
-char masterserver_version[] = "0.3.3";
+int master_shutdown = 0; // to signal graceful shutdown (by sigint handler)
+char masterserver_version[] = "0.4";
 
 // XXX: merge struct in_addr and in_port_t to struct sockaddr_in ?
 typedef struct {
@@ -28,45 +19,47 @@ typedef struct {
 	void *private_data; // data specific to plugin
 } serverlist_t;
 
-typedef char plugin_name[32];
+typedef struct {
+	int protocol;
+	in_port_t num;
+} port_t;
 
 // struct for plugins
 struct masterserver_plugin {
 	// the following has to be filled by the plugin
-	plugin_name name; // plugin name
+	const char name[32]; // plugin name
 	const char *pversion; // plugin version
 	const char *cversion; // which masterserver version was this compiled against
-	unsigned int *port; // port(s) to listen on
+	port_t *port; // port(s) to listen on
 	int num_ports;
-	// following is for future use
-	//const int protocol;	// which protocol to use? tcp, udp, ...
-	int heartbeat_timeout; // after how many seconds does a server timeout and is then kicked out of the serverlist
+	int heartbeat_timeout; // server heartbeat timeout in seconds
 
 	void (*info) (void); // show info about plugin
-	int (*process) (char *packet); // process a packet
-	void (*cleanup) (void); // free private data
+	int (*process) (char *, int); // process a packet
+	void (*free_privdata) (void *);	// free private data
+	void (*cleanup) (void);	// free private data
 	// end plugin fill section
 
 	struct masterserver_plugin *next; // next plugin in linked list
 	pthread_mutex_t mutex; // mutex for this struct
 	unsigned int num_servers; // current number of servers in list
-	serverlist_t *list;	 // pointer to serverlist
+	serverlist_t *list; // pointer to serverlist
 	char **msg_out; // array of packets to send to client
 	int *msg_out_length; // lengths of outgoing packets
 	int num_msgs; // how many packets are in msg_out array
 	unsigned int enabled; // plugin enabled?
 	int *socket_d; // socket(s)
 	int num_sockets;
-	struct sockaddr_in client; // client strcture
+	struct sockaddr_in client; // client struct
 	struct sockaddr_in *server; // server struct
 	pthread_t thread_nr; // thread id
 	pthread_t heartbeat_thread_nr; // heartbeat thread id
 };
 
 // plugins call the following function
-extern void register_plugin(struct masterserver_plugin *me);
+extern void register_plugin(struct masterserver_plugin *);
 // generic function for deleting servers in plugin server list
-extern void delete_server(struct masterserver_plugin *me, int server_num);
+extern void delete_server(struct masterserver_plugin *, int);
 
 #endif // _MASTERSERVER_H
 

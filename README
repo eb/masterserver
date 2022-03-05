@@ -1,4 +1,4 @@
-masterserver v0.3
+masterserver v0.4
 -----------------
 
 1. Introduction
@@ -13,8 +13,10 @@ masterserver v0.3
 masterserver is an attempt at writing a generic master server for game servers.
 masterserver is easily extendable via plugins written in C.
 Currently, there are plugins for Quake2/3 and Heretic2. I've tested
-masterserver on Linux 2.4.19 with glibc 2.3.2 (with linuxthreads) and gcc 3.3.2.
-It should compile without problems on other Linux systems.
+masterserver on:
+Linux 2.4.29 with glibc 2.3.2 (with linuxthreads) and gcc 3.3.5
+FreeBSD 5.3-STABLE with gcc 3.4.2
+SunOS 5.8 with gcc 3.4.1
 
 The name might change, any suggestions are welcome.
 
@@ -43,21 +45,41 @@ Note:
 Note on Q3 plugin:
 	The new Q3 plugin understands and processes motd packets. The default motd
 	is "Insert MOTD here.". If you want to change the motd then you have to
-	edit plugins/libq3.c. At the beginning of the file there's a line which
+	edit "plugins/libq3.c". At the beginning of the file there's a line which
 	reads: #define Q3M_MOTD "Insert MOTD here."
 	Just replace "Insert MOTD here." with your own motd, recompile the Q3
 	plugin and enjoy.
+	Beware! The Q3 Master's ports partially collide with the EF Master's ports.
+	So you can't run both a EF and Q3 Master on the same IP address. By
+	default, both plugins will be installed. So you'll have to delete one of
+	them.
 
 Note on Q2/H2 plugins:
 	They're very similar because Heretic2 is based on the Q2 engine. Both
 	plugins haven't had much testing. So far I made sure that they write
 	servers into their server list and correctly send it out when requested.
 
+Note on D3 plugin:
+	This is a barebones implementation. Only processes "heartbeat" and
+	"getServers" packets. Other packets are ignored.
+
+Note on EF plugin:
+	Again a barebones implementation. Only "getservers", "getmotd", "heartbeat"
+	and "heartstop" packets are processed. Other packets are ignored.
+	The default motd is "Insert MOTD here.". If you want to change it then you
+	have to edit "plugins/libef.c". Near the beginning of the file there's a
+	line which reads: #define EFM_MOTD "Insert MOTD here."
+	Just replace "Insert MOTD here." with your own motd, recompile the EF
+	plugin and enjoy.
+	Beware! The EF Master's ports partially collide with the Q3 Master's ports.
+	So you can't run both a EF and Q3 Master on the same IP address. By
+	default, both plugins will be installed. So you'll have to delete one of
+	them.
 
 The usual "make; make install".
 
-make
-make install (as root)
+# make
+# make install (as root)
 
 Now, you're ready to go.
 
@@ -66,19 +88,19 @@ binary is installed in "/usr/bin". If that isn't to your liking you can change
 the destinations in the Makefile.
 
 masterserver can be started as any user. (preferably as a non privileged user)
-It also has the ability to bind to specific interfaces. If you want to do that
-masterserver needs to be root. After masterserver has created and bound the
-sockets to the interface(s) it drops the root privileges and sets its uid to
-"masterserver". So you have to create a new user named "masterserver", if you
-want to bind it to (a) specific interface(s).
+It also has the ability to bind to specific interfaces. (Attention: This is a
+Linux-only feature) If you want to do that masterserver needs to be root. After
+masterserver has created and bound the sockets to the interface(s) it drops the
+root privileges to the user and group specified on the command line, using the
+"-u" and "-g" options.
 
 In the Makefile there are 2 other targets, named "masterserver" and "plugins", to either
 compile only the masterserver or only the plugins.
 
 There is no configuration file.
 By default masterserver reads all files in the MASTERSERVER_LIB_DIR,
-which is defined in masterserver.h/Makefile and opens all files as shared
-objects. Or you can specify a different directory via the -p command line
+which is defined in masterserver.h and opens all files as shared objects.
+Or you can specify a different directory via the "-p" command line
 switch. MASTERSERVER_LIB_DIR defaults to "/usr/lib/lasange/masterserver".
 
 Btw, to uninstall masterserver, run "make uninstall". (as root)
@@ -94,27 +116,59 @@ libq3/Quake3
 	Q3 MOTD DNS name:	update.quake3arena.com
 	Q3 auth DNS name:	authorize.quake3arena.com
 
-	command line options:
+	server command line options:
 	+set sv_master1 10.0.0.1 +set sv_master2 masterserver.exhale.de
 
+	You can specify up to 5 masters.
+
+
 libq2/Quake2
-	command line options:
-	+set public 1 +setmaster 10.0.0.1 masterserver.exhale.de (max. 7 masters)
+	server command line options:
+	+set public 1 +setmaster 10.0.0.1 masterserver.exhale.de
+
+	You can specify up to 7 masters.
+
 
 libh2/Heretic2
 	H2 master DNS name:	master.ravensoft.com
 
-	command line options:
-	+set public 1 +setmaster 10.0.0.1 masterserver.exhale.de (max. 7 masters)
+	server command line options:
+	+set public 1 +setmaster 10.0.0.1 masterserver.exhale.de
+
+	You can specify up to 7 masters.
+
 
 libqw/QuakeWorld
-	command line options:
-	+setmaster 10.0.0.1 10.0.0.2 (max. 8 masters)
+	server command line options:
+	+setmaster 10.0.0.1 10.0.0.2
+
+	You can specify up to 8 masters.
+
+
+libd3/Doom3
+	Doom3 master DNS name: idnet.ua-corp.com
+
+	Doom3 server command line options:
+	+set net_master0 10.0.0.1 +set net_master1 masterserver.exhale.de
+
+	You can specify up to 5 masters.
+
+
+libef/Star Trek Voyager: Elite Force
+	EF master DNS name:	master.stef1.ravensoft.com
+	EF MOTD DNS name:	motd.stef1.ravensoft.com
+	EF auth DNS name:	authenticate.stef1.ravensoft.com
+
+	server command line options:
+	+set sv_master1 10.0.0.1 +set sv_master2 masterserver.exhale.de
+
+	You can specify up to 5 masters.
 
 4. Misc
 -------
 
 Thanks to:
+----------
 iptables team for their source code from which I've learned how to use 
 shared objects. <http://www.netfilter.org>
 
@@ -124,14 +178,23 @@ nightly debugging sessions.
 Viktor Vasilev aka shr1k3 <shr1k3@gmx.at>
 	Suggestions and code auditing
 	Logging code
+	FreeBSD support
+	letting me test the code on his machine
 
 qstat team for their source code <http://www.qstat.org>
 
 fatty <fatty@gmx.ch>
 	packet dumps which helped fix a small bug in libq2
+	suggestions
 
 QuakeForge <http://www.quakeforge.net>
+	QW protocol
 
+<XL*g0b> <g0b@arcor.de>
+	capturing Doom3 packets
 
-Last modified: 2004-04-26 by Andre' Schulz
+ID Software <http://www.idsoftware.com>
+	releasing their old engines under the GPL
+
+Last modified: 2005-05-21 by Andre' Schulz
 

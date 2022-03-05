@@ -16,7 +16,10 @@
  * along with masterserver; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * The author can be contacted at andre@malchen.de
+ * The author can be contacted at chickenman@exhale.de
+ */
+/*
+ * vim:sw=4:ts=4
  */
 
 #include "../masterserver.h"
@@ -29,12 +32,15 @@
 #define LOG_SUBNAME "libexample" // logging category description
 
 const char example_plugin_version[] = "0.3";
-int example_ports[] = { 12345, 12346, 12347 };
+port_t example_ports[] = {	{ IPPROTO_UDP, 12345 },
+							{ IPPROTO_UDP, 12346 },
+							{ IPPROTO_UDP, 12347 } };
 
-static void info(void);
-static int process(char *packet); // process packet and return a value
-static void cleanup(void);
-void init_plugin(void) __attribute__ ((constructor));
+static void	info(void);
+static int	process(char *); // process packet and return a value
+static void	free_privdata(void *); // free private data
+static void	cleanup(void); // clean up function in case of shutdown
+void		init_plugin(void) __attribute__ ((constructor));
 
 static
 struct masterserver_plugin example
@@ -43,10 +49,10 @@ struct masterserver_plugin example
 	masterserver_version,
 	example_ports,
 	3,
-	// EXAMPLE_PROTOCOL, // for future use
 	HEARTBEAT_TIMEOUT,
 	&info,
 	&process,
+	&free_privdata,
 	&cleanup
 };
 
@@ -62,6 +68,12 @@ process(char *packet)
 {
 	// insert packet processing code here
 	return 0;
+}
+
+static void
+free_privdata(void *privdata)
+{
+	// insert code here
 }
 
 static void

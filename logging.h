@@ -31,8 +31,8 @@
 
 //extern int _log_level;
 
-extern int log_init(char *filename, char* progname);
-extern void log_write(int log_level, char *subname, char *fmt, ...);
+extern int log_init(char *, char*);
+extern void log_write(int, char *, char *, ...);
 extern void log_close(void);
 
 #endif // _LOGGING_H

@@ -1,3 +1,12 @@
+2005-05-21	masterserver-0.4 release
+- updated STVEF1, UT and Doom 3 sections in docs/PROTOCOLS
+- added RtCW section to docs/PROTOCOLS
+- plugin API changed slightly
+- lots of bug fixes and cleaning up
+- compiles and runs on FreeBSD out-of-the-box
+- Doom 3 plugin
+- Star Trek Voyager: Elite Force plugin
+
 2004-04-26	masterserver-0.3.3 release
 - fix libh2/q2 gamespy query bug for real
 - docs/PROTOKOLLE* merged and translated to docs/PROTOCOLS

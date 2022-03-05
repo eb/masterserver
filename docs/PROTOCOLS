@@ -23,6 +23,10 @@ Beware! This document is still chaotic and definitely incomplete.
 		1.2.8. connectResponse
 		1.2.9. heartbeat
 		1.2.10 print
+		1.2.11 getIpAuthorize
+		1.2.12 ipAuthorize
+		1.2.13 ping
+		1.2.14 disconnect
 
 2. Heretic 2 protocol
 	2.1. heartbeat
@@ -84,8 +88,46 @@ Beware! This document is still chaotic and definitely incomplete.
 	5.6. Master server traffic
 
 6. QuakeWorld protocol
+	6.1. status
+	6.2. n
+	6.3. c
+	6.4. d
+	6.5. ping
+	6.6. k
+	6.7. l
+	6.8. a
+	6.9. C
 
-7. Links
+7. HexenWorld protocol
+
+8. RtCW protocol
+	8.1. heartbeat
+	8.2. getinfo
+	8.3. getIpAuthorize
+	8.4. ipAuthorize
+	8.5. infoReponse
+	8.6. getmotd
+	8.7. motd
+
+9. Doom3 protocol
+	9.1. getServers
+	9.2. versionCheck
+	9.3. servers
+	9.4. getInfo
+	9.5. infoResponse
+	9.6. newVersion
+	9.7. heartbeat
+	9.8. srvAuth
+	9.9. auth
+	9.10. challenge
+	9.11. challengeResponse
+
+10. Half-Life protocol
+	10.1. s
+	10.2. q
+	10.3. 0
+
+11. Links
 
 --
 
@@ -93,6 +135,7 @@ Beware! This document is still chaotic and definitely incomplete.
 ===================
 
 Q3 server port: UDP 27960
+
 Q3 master DNS name: master.quake3arena.com
 Q3 master port: UDP 27950
 Q3 MOTD DNS name: update.quake3arena.com
@@ -106,7 +149,7 @@ Q3 auth server port: UDP 27952
 
 1.1.1. getservers
 -----------------
-(Client -> Master)
+(UDP, Client -> Master:27950)
 
 0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 20 36   ÿÿÿÿgetservers 6
 0010  36 20 65 6d 70 74 79 20 66 75 6c 6c 20 64 65 6d   6 empty full dem
@@ -137,7 +180,7 @@ getservers packets are sent to master.quake3arena.com:27950.
 
 1.1.2. getserversResponse
 -------------------------
-(Master -> Client)
+(UDP, Master:27950 -> Client)
 
 0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 52 65   ÿÿÿÿgetserversRe
 0010  73 70 6f 6e 73 65 5c d9 d3 f8 cc fb e7 5c 18 f3   sponse\ÙÓøÌûç\.ó
@@ -162,22 +205,24 @@ So every packet the ID Q3 master sends has a maximum of 810 bytes payload.
 
 1.1.3. getKeyAuthorize
 ----------------------
-(Client -> Master)
+(UDP, Client -> Master:27952)
 
 0000  ff ff ff ff 67 65 74 4b 65 79 41 75 74 68 6f 72   ÿÿÿÿgetKeyAuthor
 0010  69 7a 65 20 30 20 78 78 78 78 78 78 78 78 78 78   ize 0 xxxxxxxxxx
 0020  78 78 78 78 78 78                                 xxxxxx
 
-The key consists of 16 characters out of [A-Za-z0-9].
+The "x" characters are placeholders for the cd key which consists of
+16 characters out of [A-Za-z0-9].
 
 Note:
-ID's Q3 master server doesn't reply to the "getKeyAuthorize" command any more. I read somewhere that the authorization is back online because of PunkBuster.
+ID's Q3 master server doesn't reply to the "getKeyAuthorize" command any more.
+I read somewhere that the authorization is back online because of PunkBuster.
 getKeyAuthorize packets are sent to authorize.quake3arena.com:27952.
 
 
 1.1.4. getmotd
 --------------
-(Client -> Master)
+(UDP, Client -> Master:27951)
 
 0000  ff ff ff ff 67 65 74 6d 6f 74 64 20 22 5c 76 65   ÿÿÿÿgetmotd "\ve
 0010  72 73 69 6f 6e 5c 51 33 20 31 2e 33 32 62 20 6c   rsion\Q3 1.32b l
@@ -195,7 +240,7 @@ The Q3 client sends the "getmotd" packet to update.quake3arena.com:27951 UDP.
 
 1.1.5. motd
 -----------
-(Master -> Client)
+(UDP, Master:27951 -> Client)
 
 0000  ff ff ff ff 6d 6f 74 64 20 22 63 68 61 6c 6c 65   ÿÿÿÿmotd "challe
 0010  6e 67 65 5c 38 32 32 32 38 33 31 36 38 5c 6d 6f   nge\822283168\mo
@@ -212,7 +257,7 @@ The "challenge" value is parsed from the "getmotd" packet.
 
 1.2.1. getinfo
 --------------
-(Client -> Server)
+(UDP, Client -> Server:27960)
 
 0000  ff ff ff ff 67 65 74 69 6e 66 6f 0a               ÿÿÿÿgetinfo.
 
@@ -221,6 +266,7 @@ No parameters known.
 
 1.2.2. infoResponse
 -------------------
+(UDP, Server:27960 -> Client)
 
 0000  ff ff ff ff 69 6e 66 6f 52 65 73 70 6f 6e 73 65   ÿÿÿÿinfoResponse
 0010  0a 5c 70 75 6e 6b 62 75 73 74 65 72 5c 30 5c 70   .\punkbuster\0\p
@@ -269,7 +315,7 @@ servers in a LAN.
 
 1.2.3. getstatus
 --------------
-(Client -> Server)
+(UDP, Client -> Server:27960)
 
 0000  ff ff ff ff 67 65 74 73 74 61 74 75 73 0a         ÿÿÿÿgetstatus.
 
@@ -283,6 +329,7 @@ challenge value, which is afaik only used by the Q3 master.
 
 1.2.4. statusResponse
 ---------------------
+(UDP, Server:27960 -> Client)
 
 An empty baseq3 1.32 server:
 
@@ -399,7 +446,7 @@ The blocks look like the following:
 
 1.2.5. getchallenge
 -----------------
-(Client -> Server)
+(UDP, Client -> Server:27960)
 
 0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65   ÿÿÿÿgetchallenge
 
@@ -408,7 +455,7 @@ No parameters known.
 
 1.2.6. challengeResponse
 ----------------------
-(Server -> Client)
+(UDP, Server:27960 -> Client)
 
 0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 52 65 73   ÿÿÿÿchallengeRes
 0010  70 6f 6e 73 65 20 39 36 31 31 36 36 35 31         ponse 96116651
@@ -419,7 +466,7 @@ integer.
 
 1.2.7. connect
 ------------
-(Client -> Server)
+(UDP, Client -> Server:27960)
 
 0000  ff ff ff ff 63 6f 6e 6e 65 63 74 20 01 53 44 74   ÿÿÿÿconnect .SDt
 0010  30 8e 05 0c c7 26 c3 14 ec 8e f9 67 70 1a 36 c1   0...Ç&Ã.ì.ùgp.6Á
@@ -447,7 +494,7 @@ TODO: information is huffman encoded; see luigi auriemma's research
 
 1.2.8. connectResponse
 --------------------
-(Server -> Client)
+(UDP, Server:27960 -> Client)
 
 0000  00 01 6d 38 6d 38 00 1b e1 3e ff ff ff ff 63 6f   ..m8m8..á>ÿÿÿÿco
 0010  6e 6e 65 63 74 52 65 73 70 6f 6e 73 65            nnectResponse   
@@ -458,7 +505,7 @@ No parameters known.
 
 1.2.9. heartbeat
 --------------
-(Server -> Master)
+(UDP, Server:27960 -> Master:27950)
 
 0000  ff ff ff ff 68 65 61 72 74 62 65 61 74 20 51 75   ÿÿÿÿheartbeat Qu
 0010  61 6b 65 41 72 65 6e 61 2d 31 0a                  akeArena-1.
@@ -478,6 +525,7 @@ information about the server. (e.g. "protocol", etc.)
 
 1.2.10 print
 ------------
+(UDP, Server:27960 -> Client)
 
 0000  ff ff ff ff 70 72 69 6e 74 0a 53 65 72 76 65 72   ÿÿÿÿprint.Server
 0010  20 75 73 65 73 20 70 72 6f 74 6f 63 6f 6c 20 76    uses protocol v
@@ -486,6 +534,57 @@ information about the server. (e.g. "protocol", etc.)
 The server or master can tell the Q3 client to show a text message to the
 user with the "print" packet. This packet is used for messages like
 "Invalid Password", etc.
+
+
+1.2.11 getIpAuthorize
+---------------------
+(UDP, Server:27960 -> Master:27950)
+
+0000  ff ff ff ff 67 65 74 49 70 41 75 74 68 6f 72 69   ÿÿÿÿgetIpAuthori
+0010  7a 65 20 2d 31 36 33 32 38 38 38 30 36 31 20 78   ze -1632888061 x
+0020  78 78 2e 78 78 78 2e 78 78 78 2e 78 78 20 62 61   xx.xxx.xxx.xx ba
+0030  73 65 71 33 20 30 20 31                           seq3 0 1
+
+When a client connects to the server, the server asks the master if the
+client's IP is authorized by the master. (A client's IP is authorized by
+it sending a getKeyAuthorize with a valid cd key to the master)
+The "x" characters are placeholders for the client IP.
+The first 3 parameters are pretty obvious; challenge number, client IP and
+modification ID string. The 2 trailing numbers are unknown to me.
+
+
+1.2.12 ipAuthorize
+------------------
+(UDP, Master:27950 -> Server:27960)
+
+0000  ff ff ff ff 69 70 41 75 74 68 6f 72 69 7a 65 20   ÿÿÿÿipAuthorize 
+0010  2d 31 36 33 32 38 38 38 30 36 31 20 61 63 63 65   -1632888061 acce
+0020  70 74 20 4b 45 59 5f 49 53 5f 47 4f 4f 44         pt KEY_IS_GOOD
+
+TODO: packet which denies authorization
+
+This is a reply to a "getIpAuthorize" packet. As you can see the challenge
+number is present again. The 2 strings after the challenge number are unknown
+to me.
+
+
+1.2.13 ping
+-----------
+(UDP, Client -> Server:27960)
+
+0000  70 69 6e 67                                       ping
+
+Sending a packet which contains only the string "ping" makes the server reply
+with a "disconnect" packet.
+
+
+1.2.14 disconnect
+-----------------
+(UDP, Server:27960 -> Client)
+
+0000  ff ff ff ff 64 69 73 63 6f 6e 6e 65 63 74         ÿÿÿÿdisconnect
+
+Reply to a "ping" packet.
 
 --
 
@@ -507,7 +606,7 @@ setmaster 10.0.0.1 10.0.0.2 10.0.0.3 (max. 7 master servers)
 
 2.1.1. shutdown
 ---------------
-(Server -> Master)
+(UDP, Server:28910 -> Master:28900)
 
 0000  ff ff ff ff 73 68 75 74 64 6f 77 6e                ÿÿÿÿshutdown
 
@@ -516,7 +615,7 @@ Tells the master that the server is shutting down.
 
 2.1.2. heartbeat
 ----------------
-(Server -> Master)
+(UDP, Server:28910 -> Master:28900)
 
 Gamespy heartbeat packet:
 
@@ -601,7 +700,7 @@ Heartbeats are sent after a map change or every 300 seconds.
 
 2.1.3. info
 -----------
-(Client -> Server)
+(UDP, Client -> Server:28910)
 
 Broadcast packet:
 -----------------
@@ -625,7 +724,7 @@ The blocks are separated by "\n" (Hex 0x0A) and " " (Hex 0x20) characters.
 
 2.1.4. status
 -------------
-(Client -> Server)
+(UDP, Client -> Server:28910)
 
 0000  ff ff ff ff 73 74 61 74 75 73 0a                   ÿÿÿÿstatus.
 
@@ -635,7 +734,7 @@ packet.
 
 2.1.5. print
 ------------
-(Server -> Client)
+(UDP, Server:28910 -> Client)
 
 0000  ff ff ff ff 70 72 69 6e 74 0a 5c 6d 61 70 6e 61    ÿÿÿÿprint.\mapna
 0010  6d 65 5c 67 64 6f 6d 65 5c 6e 6f 6d 6f 6e 73 74    me\gdome\nomonst
@@ -684,7 +783,7 @@ The "game" variable only appears if it is set. (i.e. only when playing a mod)
 
 2.1.6. getchallenge
 -------------------
-(Client -> Server)
+(UDP, Client -> Server:28910)
 
 0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65    ÿÿÿÿgetchallenge
 0010  0a                                                 .     
@@ -696,7 +795,7 @@ number.
 
 2.1.7. challenge
 ----------------
-(Server -> Client)
+(UDP, Server:28910 -> Client)
 
 0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 20 32 30    ÿÿÿÿchallenge 20
 0010  38 30 30 36 37 32 33                               8006723
@@ -707,7 +806,7 @@ returned seems to be a signed 32 bit integer.
 
 2.1.8. connect
 --------------
-(Client -> Server)
+(UDP, Client -> Server:28910)
 
 0000  ff ff ff ff 63 6f 6e 6e 65 63 74 20 35 31 20 35    ÿÿÿÿconnect 51 5
 0010  36 34 20 32 30 38 30 30 36 37 32 33 20 22 5c 61    64 208006723 "\a
@@ -725,7 +824,7 @@ means. Client supplied information follows in quotes.
 
 2.1.9. client_connect
 ---------------------
-(Server -> Client)
+(UDP, Server:28910 -> Client)
 
 0000  ff ff ff ff 63 6c 69 65 6e 74 5f 63 6f 6e 6e 65    ÿÿÿÿclient_conne
 0010  63 74                                              ct
@@ -735,7 +834,7 @@ TODO: find out if this an acknowledgement.
 
 2.1.10. ping
 ------------
-(Server -> Master)
+(UDP, Server:28910 -> Master:28900)
 
 0000  ff ff ff ff 70 69 6e 67                            ÿÿÿÿping
 
@@ -752,7 +851,7 @@ Quake 2 master server port: UDP 27900
 
 3.1. heartbeat
 --------------
-(Server -> Master)
+(UDP, Server:27910 -> Master:27900)
 
 0000  ff ff ff ff 68 65 61 72 74 62 65 61 74 0a 5c 6d   ÿÿÿÿheartbeat.\m
 0010  61 70 6e 61 6d 65 5c 71 32 64 6d 31 5c 6e 65 65   apname\q2dm1\nee
@@ -777,7 +876,7 @@ the heartbeat.
 
 3.2. query
 ----------
-(Client -> Master)
+(UDP, Client -> Master:27900)
 
 0000  71 75 65 72 79 0a 00                              query..
 
@@ -786,7 +885,7 @@ Requests the server list from the master.
 
 3.3. shutdown
 -------------
-(Server -> Master)
+(UDP, Server:27910 -> Master:27900)
 
 0000  ff ff ff ff 73 68 75 74 64 6f 77 6e               ÿÿÿÿshutdown
 
@@ -795,7 +894,7 @@ Tells the master that the server is shutting down.
 
 3.4. status
 -----------
-(Client -> Server)
+(UDP, Client -> Server:27910)
 
 0000  ff ff ff ff 73 74 61 74 75 73 0a                  ÿÿÿÿstatus.
 
@@ -804,6 +903,7 @@ Request server information.
 
 3.5. print
 ----------
+(UDP, Server:27910 -> Client)
 
 1 player, baseq2:
 
@@ -869,7 +969,7 @@ TODO: more detailed description, see heretic2 section for now
 
 3.6. info
 ---------
-(Server -> Client)
+(UDP, Server:27910 -> Client)
 
 0000  ff ff ff ff 69 6e 66 6f 0a 20 20 20 20 20 20 20   ÿÿÿÿinfo.       
 0010  20 20 20 6e 6f 6e 61 6d 65 20 20 20 20 71 32 64      noname    q2d
@@ -881,7 +981,7 @@ players.
 
 3.7. info
 ---------
-(Client -> Server)
+(UDP, Client -> Server:27910)
 
 0000  ff ff ff ff 69 6e 66 6f 20 33 34                  ÿÿÿÿinfo 34
 
@@ -892,7 +992,7 @@ TODO: more detailed description, see heretic2 section for now
 
 3.8. getchallenge
 -----------------
-(Client -> Server)
+(UDP, Client -> Server:27910)
 
 0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65   ÿÿÿÿgetchallenge
 0010  0a                                                .     
@@ -903,7 +1003,7 @@ connection.
 
 3.9. challenge
 --------------
-(Server -> Client)
+(UDP, Server:27910 -> Client)
 
 0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 20 32 32   ÿÿÿÿchallenge 22
 0010  36 39 35                                          695
@@ -912,8 +1012,8 @@ Reply to a "getchallenge" packet. Contains a presumably signed 32bit integer.
 Second step in establishing a connection.
 
 3.10. connect
-------------
-(Client -> Server)
+-------------
+(UDP, Client -> Server:27910)
 
 0000  ff ff ff ff 63 6f 6e 6e 65 63 74 20 33 34 20 38   ÿÿÿÿconnect 34 8
 0010  31 30 20 32 32 36 39 35 20 22 5c 73 70 65 63 74   10 22695 "\spect
@@ -930,7 +1030,7 @@ information.
 
 3.11. client_connect
 --------------------
-(Server -> Client)
+(UDP, Server:27910 -> Client)
 
 0000  ff ff ff ff 63 6c 69 65 6e 74 5f 63 6f 6e 6e 65   ÿÿÿÿclient_conne
 0010  63 74                                             ct    
@@ -940,7 +1040,7 @@ TODO: is this an acknowledgement?
 
 3.12. servers
 -------------
-(Master -> Client)
+(UDP, Master:27900 -> Client)
 
 0000  ff ff ff ff 73 65 72 76 65 72 73 20 c2 fb f9 3a   ÿÿÿÿservers Âûù:
 0010  6d 06 42 a2 3a 29 6d 07 42 8b 49 11 6d 06 c3 94   m.B¢:)m.B.I.m.Ã.
@@ -949,8 +1049,8 @@ TODO: is this an acknowledgement?
 
 
 Reply to a "query" packet. Contains the server list. After the "servers"
-string and a whitespace the ip and port of the servers known to the master
-follow in blocks of 6 bytes:
+string and a whitespace the IP and port address of the servers known to the
+master follow in blocks of 6 bytes:
 	4 bytes IP address
 	2 bytes port address
 
@@ -961,7 +1061,7 @@ ID Software doesn't have a Q2 master running anymore.
 
 3.13. ping
 ----------
-(Server -> Master)
+(UDP, Server:27910 -> Master:27900)
 
 0000  ff ff ff ff 70 69 6e 67                           ÿÿÿÿping
 
@@ -970,7 +1070,7 @@ A "ping" packet is sent to the master on startup.
 
 3.14. ack
 ---------
-(Master -> Server)
+(UDP, Master:27900 -> Server:27910)
 
 0000  ff ff ff ff 70 61 63 6b                           ÿÿÿÿack
 
@@ -982,6 +1082,7 @@ Reply to a "ping" packet.
 ============================
 
 EF server port: UDP 27960
+
 EF master DNS name: master.stef1.ravensoft.com
 EF master port: UDP 27953
 EF MOTD DNS name: motd.stef1.ravensoft.com
@@ -995,7 +1096,7 @@ EF auth server port: UDP 27952
 
 4.1.1. getservers
 -----------------
-(Client -> Master)
+(UDP, Client -> Master:27953)
 
 0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 20 32   ÿÿÿÿgetservers 2
 0010  34 20 65 6d 70 74 79 20 66 75 6c 6c               4 empty full
@@ -1005,7 +1106,7 @@ Following the "getservers" string are a number of options:
 				STEF1 1.20 == 24
 empty full	- Specifies which servers to show. This is optional.
 
-I've see the following keywords being used:
+I've seen the following keywords being used:
 	empty - empty servers
 	full - full servers (all player slots used except for the private slots)
 	ffa - Free For All server
@@ -1013,11 +1114,12 @@ I've see the following keywords being used:
 	tourney - Tournament (1v1) server
 	ctf - Capture the Flag server
 
-Usually, "getservers" packets are sent to master.stef1.ravensoft.com:27953.
+"getservers" packets are sent to master.stef1.ravensoft.com:27953.
 
 
 4.1.2. getserversResponse
 -------------------------
+(UDP, Master:27953 -> Client)
 
 0000  ff ff ff ff 67 65 74 73 65 72 76 65 72 73 52 65   ÿÿÿÿgetserversRe
 0010  73 70 6f 6e 73 65 20 5c 38 32 64 37 38 32 31 63   sponse \82d7821c
@@ -1028,13 +1130,19 @@ Usually, "getservers" packets are sent to master.stef1.ravensoft.com:27953.
 
 Looks almost like the "getserversResponse" from the Q3 master. The only
 difference is that the STEF1 master encodes IP and port addresses in
-hex.
+hex. The hex values are written in network byte order.
 I'd really like to know why Raven did this ...
+The Master sends a maximum of 97 servers per packet. So we get the following
+maximum packet size:
+97*(12+1)	= 1261 bytes (97 servers + delimiter)
++ 4			= 1265 bytes (protocol marker)
++ 19		= 1284 bytes (length of command)
++ 4			= 1288 bytes (footer "\EOT")
 
 
 4.1.3. getKeyAuthorize
 ----------------------
-(Client -> Master)
+(UDP, Client -> Master:27952)
 
 0000  ff ff ff ff 67 65 74 4b 65 79 41 75 74 68 6f 72   ÿÿÿÿgetKeyAuthor
 0010  69 7a 65 20 39 39 39 20 78 78 78 78 78 78 78 78   ize 999 xxxxxxxx
@@ -1047,7 +1155,7 @@ means. The "x" characters are a placeholder for the CD key.
 
 4.1.4. getmotd
 --------------
-(Client -> Master)
+(UDP, Client -> Master:27951)
 
 0000  ff ff ff ff 67 65 74 6d 6f 74 64 20 22 5c 63 68   ÿÿÿÿgetmotd "\ch
 0010  61 6c 6c 65 6e 67 65 5c 31 34 39 38 35 5c 76 65   allenge\14985\ve
@@ -1075,7 +1183,7 @@ colorbits
 
 4.1.5. motd
 -----------
-(Master -> Client)
+(UDP, Master:27951 -> Client)
 
 0000  ff ff ff ff 6d 6f 74 64 20 22 5c 63 68 61 6c 6c   ÿÿÿÿmotd "\chall
 0010  65 6e 67 65 5c 31 34 39 38 35 5c 6d 6f 74 64 5c   enge\14985\motd\
@@ -1092,7 +1200,7 @@ The value of the "motd" variable is shown on the bottom of the loading screen.
 
 4.2.1. getinfo
 --------------
-(Client -> Server)
+(UDP, Client -> Server:27960)
 
 0000  ff ff ff ff 67 65 74 69 6e 66 6f 0a               ÿÿÿÿgetinfo.
 
@@ -1100,14 +1208,27 @@ No parameters known.
 
 4.2.2. infoResponse
 -------------------
+(UDP, Server:27960 -> Client)
 
-TODO: stef1 infoResponse packet
+0000  ff ff ff ff 69 6e 66 6f 52 65 73 70 6f 6e 73 65   ÿÿÿÿinfoResponse
+0010  20 22 5c 63 68 61 6c 6c 65 6e 67 65 5c 78 78 78    "\challenge\xxx
+0020  5c 70 72 6f 74 6f 63 6f 6c 5c 32 34 5c 68 6f 73   \protocol\24\hos
+0030  74 6e 61 6d 65 5c 47 41 4d 45 2e 4e 45 54 20 42   tname\GAME.NET B
+0040  6f 6f 6b 61 62 6c 65 20 2d 20 53 54 56 20 45 6c   ookable - STV El
+0050  69 74 65 20 46 6f 72 63 65 20 28 33 29 20 2d 20   ite Force (3) - 
+0060  41 76 61 69 6c 61 62 6c 65 5c 6d 61 70 6e 61 6d   Available\mapnam
+0070  65 5c 68 6d 5f 62 6f 72 67 31 5c 63 6c 69 65 6e   e\hm_borg1\clien
+0080  74 73 5c 30 5c 73 76 5f 6d 61 78 63 6c 69 65 6e   ts\0\sv_maxclien
+0090  74 73 5c 31 36 5c 67 61 6d 65 74 79 70 65 5c 30   ts\16\gametype\0
+00a0  5c 70 75 72 65 5c 31 5c 67 61 6d 65 5c 42 61 73   \pure\1\game\Bas
+00b0  65 45 46 22                                       eEF"  
+
 TODO: description
 
 
 4.2.3. getstatus
 --------------
-(Client -> Server)
+(UDP, Client -> Server:27960)
 
 0000  ff ff ff ff 67 65 74 73 74 61 74 75 73 0a         ÿÿÿÿgetstatus.
 
@@ -1122,14 +1243,90 @@ Optionally, a challenge value can be sent with the request. AFAIK the
 
 4.2.4. statusResponse
 ---------------------
+(UDP, Server:27960 -> Client)
 
-TODO: stef1 statusResponse packet
+statusReponse from an empty EF server:
+--------------------------------------
+0000  ff ff ff ff 73 74 61 74 75 73 52 65 73 70 6f 6e   ÿÿÿÿstatusRespon
+0010  73 65 0a 5c 63 68 61 6c 6c 65 6e 67 65 5c 31 30   se.\challenge\10
+0020  36 39 30 31 31 31 34 39 39 32 31 5c 67 5f 6e 65   69011149921\g_ne
+0030  65 64 70 61 73 73 5c 30 5c 63 61 70 74 75 72 65   edpass\0\capture
+0040  6c 69 6d 69 74 5c 38 5c 67 5f 6d 61 78 47 61 6d   limit\8\g_maxGam
+0050  65 43 6c 69 65 6e 74 73 5c 30 5c 67 61 6d 65 6e   eClients\0\gamen
+0060  61 6d 65 5c 62 61 73 65 45 46 5c 62 6f 74 5f 6d   ame\baseEF\bot_m
+0070  69 6e 70 6c 61 79 65 72 73 5c 30 5c 73 76 5f 61   inplayers\0\sv_a
+0080  6c 6c 6f 77 44 6f 77 6e 6c 6f 61 64 5c 31 5c 73   llowDownload\1\s
+0090  76 5f 70 75 72 65 5c 31 5c 73 76 5f 66 6c 6f 6f   v_pure\1\sv_floo
+00a0  64 50 72 6f 74 65 63 74 5c 31 5c 73 76 5f 6d 61   dProtect\1\sv_ma
+00b0  78 50 69 6e 67 5c 30 5c 73 76 5f 6d 69 6e 50 69   xPing\0\sv_minPi
+00c0  6e 67 5c 30 5c 73 76 5f 6d 61 78 52 61 74 65 5c   ng\0\sv_maxRate\
+00d0  30 5c 73 76 5f 6d 61 78 63 6c 69 65 6e 74 73 5c   0\sv_maxclients\
+00e0  38 5c 73 76 5f 68 6f 73 74 6e 61 6d 65 5c 6e 6f   8\sv_hostname\no
+00f0  6e 61 6d 65 5c 73 76 5f 70 72 69 76 61 74 65 43   name\sv_privateC
+0100  6c 69 65 6e 74 73 5c 30 5c 6d 61 70 6e 61 6d 65   lients\0\mapname
+0110  5c 68 6d 5f 62 6f 72 67 31 5c 70 72 6f 74 6f 63   \hm_borg1\protoc
+0120  6f 6c 5c 32 34 5c 67 5f 70 4d 6f 64 45 6c 69 6d   ol\24\g_pModElim
+0130  69 6e 61 74 69 6f 6e 5c 30 5c 67 5f 70 4d 6f 64   ination\0\g_pMod
+0140  41 63 74 69 6f 6e 48 65 72 6f 5c 30 5c 67 5f 70   ActionHero\0\g_p
+0150  4d 6f 64 44 69 73 69 6e 74 65 67 72 61 74 69 6f   ModDisintegratio
+0160  6e 5c 30 5c 67 5f 70 4d 6f 64 41 73 73 69 6d 69   n\0\g_pModAssimi
+0170  6c 61 74 69 6f 6e 5c 30 5c 67 5f 70 4d 6f 64 53   lation\0\g_pModS
+0180  70 65 63 69 61 6c 74 69 65 73 5c 30 5c 67 5f 67   pecialties\0\g_g
+0190  61 6d 65 74 79 70 65 5c 30 5c 74 69 6d 65 6c 69   ametype\0\timeli
+01a0  6d 69 74 5c 30 5c 66 72 61 67 6c 69 6d 69 74 5c   mit\0\fraglimit\
+01b0  32 30 5c 64 6d 66 6c 61 67 73 5c 30 5c 76 65 72   20\dmflags\0\ver
+01c0  73 69 6f 6e 5c 53 54 3a 56 20 48 4d 20 76 31 2e   sion\ST:V HM v1.
+01d0  32 30 20 6c 69 6e 75 78 2d 69 33 38 36 20 41 70   20 linux-i386 Ap
+01e0  72 20 31 37 20 32 30 30 31 0a                     r 17 2001.
+
+statusReponse from a populated EF server:
+-----------------------------------------
+0000  ff ff ff ff 73 74 61 74 75 73 52 65 73 70 6f 6e   ....statusRespon
+0010  73 65 0a 5c 67 5f 6e 65 65 64 70 61 73 73 5c 30   se.\g_needpass\0
+0020  5c 63 61 70 74 75 72 65 6c 69 6d 69 74 5c 38 5c   \capturelimit\8\
+0030  67 5f 6d 61 78 47 61 6d 65 43 6c 69 65 6e 74 73   g_maxGameClients
+0040  5c 30 5c 67 61 6d 65 6e 61 6d 65 5c 62 61 73 65   \0\gamename\base
+0050  45 46 5c 67 5f 61 6c 6c 6f 77 76 6f 74 65 5c 30   EF\g_allowvote\0
+0060  5c 67 5f 73 70 65 65 64 5c 32 35 30 5c 67 5f 67   \g_speed\250\g_g
+0070  72 61 76 69 74 79 5c 38 30 30 5c 67 5f 66 72 69   ravity\800\g_fri
+0080  65 6e 64 6c 79 66 69 72 65 5c 30 5c 62 6f 74 5f   endlyfire\0\bot_
+0090  6d 69 6e 70 6c 61 79 65 72 73 5c 32 5c 73 76 5f   minplayers\2\sv_
+00a0  61 6c 6c 6f 77 44 6f 77 6e 6c 6f 61 64 5c 31 5c   allowDownload\1\
+00b0  73 76 5f 70 75 72 65 5c 31 5c 73 76 5f 66 6c 6f   sv_pure\1\sv_flo
+00c0  6f 64 50 72 6f 74 65 63 74 5c 35 5c 73 76 5f 6d   odProtect\5\sv_m
+00d0  61 78 50 69 6e 67 5c 35 30 30 5c 73 76 5f 6d 69   axPing\500\sv_mi
+00e0  6e 50 69 6e 67 5c 30 5c 73 76 5f 6d 61 78 52 61   nPing\0\sv_maxRa
+00f0  74 65 5c 30 5c 73 76 5f 6d 61 78 63 6c 69 65 6e   te\0\sv_maxclien
+0100  74 73 5c 31 32 5c 73 76 5f 68 6f 73 74 6e 61 6d   ts\12\sv_hostnam
+0110  65 5c 43 4c 41 53 53 49 43 5f 43 54 46 5f 32 5c   e\CLASSIC_CTF_2\
+0120  73 76 5f 70 72 69 76 61 74 65 43 6c 69 65 6e 74   sv_privateClient
+0130  73 5c 30 5c 6d 61 70 6e 61 6d 65 5c 63 74 66 5f   s\0\mapname\ctf_
+0140  73 70 79 67 6c 61 73 73 5c 70 72 6f 74 6f 63 6f   spyglass\protoco
+0150  6c 5c 32 34 5c 67 5f 70 4d 6f 64 45 6c 69 6d 69   l\24\g_pModElimi
+0160  6e 61 74 69 6f 6e 5c 30 5c 67 5f 70 4d 6f 64 41   nation\0\g_pModA
+0170  63 74 69 6f 6e 48 65 72 6f 5c 30 5c 67 5f 70 4d   ctionHero\0\g_pM
+0180  6f 64 44 69 73 69 6e 74 65 67 72 61 74 69 6f 6e   odDisintegration
+0190  5c 30 5c 67 5f 70 4d 6f 64 41 73 73 69 6d 69 6c   \0\g_pModAssimil
+01a0  61 74 69 6f 6e 5c 30 5c 67 5f 70 4d 6f 64 53 70   ation\0\g_pModSp
+01b0  65 63 69 61 6c 74 69 65 73 5c 30 5c 67 5f 67 61   ecialties\0\g_ga
+01c0  6d 65 74 79 70 65 5c 34 5c 74 69 6d 65 6c 69 6d   metype\4\timelim
+01d0  69 74 5c 32 30 5c 66 72 61 67 6c 69 6d 69 74 5c   it\20\fraglimit\
+01e0  32 30 5c 64 6d 66 6c 61 67 73 5c 30 5c 76 65 72   20\dmflags\0\ver
+01f0  73 69 6f 6e 5c 53 54 3a 56 20 48 4d 20 76 31 2e   sion\ST:V HM v1.
+0200  32 30 20 6c 69 6e 75 78 2d 69 33 38 36 20 41 70   20 linux-i386 Ap
+0210  72 20 31 37 20 32 30 30 31 0a 31 31 20 30 20 22   r 17 2001.11 0 "
+0220  50 65 6c 6c 65 74 69 65 72 22 0a 31 37 20 30 20   Pelletier".17 0 
+0230  22 43 68 61 6f 74 69 63 61 22 0a 30 20 30 20 22   "Chaotica".0 0 "
+0240  4b 65 6e 6e 22 0a 33 37 20 30 20 22 42 75 73 74   Kenn".37 0 "Bust
+0250  65 72 20 4b 69 6e 63 61 69 64 22 0a 31 34 20 30   er Kincaid".14 0
+0260  20 22 54 27 4c 61 72 22 0a                         "T'Lar".
+
 TODO: description
 
 
 4.2.5. getchallenge
------------------
-(Client -> Server)
+-------------------
+(UDP, Client -> Server:27960)
 
 0000  ff ff ff ff 67 65 74 63 68 61 6c 6c 65 6e 67 65   ÿÿÿÿgetchallenge
 
@@ -1137,8 +1334,8 @@ No paramters known.
 
 
 4.2.6. challengeResponse
-----------------------
-(Server -> Client)
+------------------------
+(UDP, Server:27960 -> Client)
 
 0000  ff ff ff ff 63 68 61 6c 6c 65 6e 67 65 52 65 73   ÿÿÿÿchallengeRes
 0010  70 6f 6e 73 65 20 39 36 31 31 36 36 35 31         ponse 96116651
@@ -1148,7 +1345,7 @@ The number following "challengeResponse" is presumably a signed 32bit integer.
 
 4.2.7. connect
 --------------
-(Client -> Server)
+(UDP, Client -> Server:27960)
 
 0000  ff ff ff ff 63 6f 6e 6e 65 63 74 20 01 53 44 74   ÿÿÿÿconnect .SDt
 0010  30 8e 05 0c c7 26 c3 14 ec 8e f9 67 70 1a 36 c1   0...Ç&Ã.ì.ùgp.6Á
@@ -1170,23 +1367,24 @@ The number following "challengeResponse" is presumably a signed 32bit integer.
 0110  91 8b db 66 18 19 13 fc e8 00                     ..Ûf...üè.
 
 The "connect" packet is sent after a "challengeResponse".
-Note: This packet is encoded with huffman. For further information take a look
-	  at Luigi Auriemma's site at http://aluigi.altervista.org/ .
+Note: This packet is encoded with the Huffman algorithm. For further
+	  information take a look at Luigi Auriemma's site at
+	  http://aluigi.altervista.org/ .
 
 
 4.2.8. connectResponse
 ----------------------
-(Server -> Client)
+(UDP, Server:27960 -> Client)
 
-0000  00 01 6d 38 6d 38 00 1b e1 3e ff ff ff ff 63 6f   ..m8m8..á>ÿÿÿÿco
-0010  6e 6e 65 63 74 52 65 73 70 6f 6e 73 65            nnectResponse   
+0000  ff ff ff ff 63 6f 6e 6e 65 63 74 52 65 73 70 6f   ÿÿÿÿconnectRespo
+0010  6e 73 65                                          nse
 
 No parameters known.
 
 
 4.2.9. heartbeat
 ----------------
-(Server -> Master)
+(UDP, Server:27960 -> Master:27953)
 
 0000  ff ff ff ff 5c 68 65 61 72 74 62 65 61 74 5c 32   ÿÿÿÿ\heartbeat\2
 0010  37 39 36 30 5c 67 61 6d 65 6e 61 6d 65 5c 53 54   7960\gamename\ST
@@ -1201,6 +1399,7 @@ to be able to reply to the "getservers" packets.
 
 4.2.10 print
 ------------
+(UDP, Server:27960 -> Client)
 
 0000  ff ff ff ff 70 72 69 6e 74 0a 53 65 72 76 65 72   ÿÿÿÿprint.Server
 0010  20 75 73 65 73 20 70 72 6f 74 6f 63 6f 6c 20 76    uses protocol v
@@ -1212,6 +1411,7 @@ This is used for messages like "Invalid Password", wrong protocol version, ...
 
 4.2.11 heartstop
 ----------------
+(UDP, Server:27960 -> Master:27953)
 
 0000  ff ff ff ff 5c 68 65 61 72 74 73 74 6f 70 5c 32   ÿÿÿÿ\heartstop\2
 0010  37 39 36 30 5c 67 61 6d 65 6e 61 6d 65 5c 53 54   7960\gamename\ST
@@ -1226,65 +1426,289 @@ A "heartstop" packet is sent on server shutdown.
 5. Unreal Tournament protocol
 =============================
 
-UT server port: UDP 7778
-UT master port: TCP 28900
+UT server ports: UDP 7777, UDP 7778, UDP 7779, UDP 7780, UDP 8777
+UT master ports: TCP 80, UDP 27900, TCP 28900
+UT Gamespy master DNS name: master0.gamespy.com
+UT Epic master DNS name: unreal.epicgames.com
+UT Mplayer master DNS name: master.mplayer.com
 
 UT uses the Gamespy protocol.
 TODO: more info on gspy protocol
 
 5.1. heartbeat
 --------------
-(Server -> Master)
+(UDP, Server:7779 -> Master:27900)
 
 There are 2 different heartbeat packets:
 1. Epic master
 2. Gamespy master
 
-TODO: epic master heartbeat packet
 Packets for the Epic master look like the following:
-\heartbeat\7778\gamename\ut\gamever\436
+
+0000  5c 68 65 61 72 74 62 65 61 74 5c 37 37 37 38 5c   \heartbeat\7778\
+0010  67 61 6d 65 6e 61 6d 65 5c 75 74 5c 67 61 6d 65   gamename\ut\game
+0020  76 65 72 5c 34 35 31                              ver\451
 
 The "heartbeat" value is the port on which the server runs.
 "gamename" is a string to identify the game.
-"gamever" is the server version.
+"gamever" is the game version. (duh!)
 
-TODO: gspy master heartbeat packet
+Packets for the Epic master are sent to unreal.epicgames.com. The time between
+2 heartbeats is 60 seconds.
+
+
 Packets for the Gamespy master look like this:
-\heartbeat\7778\gamename\ut
 
-Variables have the same meaning as in the Epic master heartbeat.
+0000  5c 68 65 61 72 74 62 65 61 74 5c 37 37 37 38 5c   \heartbeat\7778\
+0010  67 61 6d 65 6e 61 6d 65 5c 75 74                  gamename\ut
+
+Variables should have the same meaning as in the Epic master heartbeat. Packets
+for the Gamespy master are sent to master0.gamespy.com. The time between 2
+heartbeats is 60 seconds.
 
 5.2. info
 ---------
-(Client -> Server)
+(UDP, Client -> Server:7778)
 
-TODO: packet dump
+0000  5c 69 6e 66 6f 5c                                 \info\
+
 TODO: description
+
+Reply looks like the following:
+
+0000  5c 68 6f 73 74 6e 61 6d 65 5c 20 6b 2d 70 6c 61   \hostname\ k-pla
+0010  79 2e 64 65 20 2f 2f 20 55 54 20 23 30 31 20 5b   y.de // UT #01 [
+0020  50 55 52 45 5d 5c 68 6f 73 74 70 6f 72 74 5c 38   PURE]\hostport\8
+0030  33 30 30 5c 6d 61 70 74 69 74 6c 65 5c 4d 61 6c   300\maptitle\Mal
+0040  65 76 6f 6c 65 6e 63 65 5c 6d 61 70 6e 61 6d 65   evolence\mapname
+0050  5c 44 4d 2d 4d 61 6c 65 76 6f 6c 65 6e 63 65 5c   \DM-Malevolence\
+0060  67 61 6d 65 74 79 70 65 5c 44 65 61 74 68 4d 61   gametype\DeathMa
+0060  74 63 68 50 6c 75 73 5c 6e 75 6d 70 6c 61 79 65   tchPlus\numplaye
+0070  72 73 5c 39 5c 6d 61 78 70 6c 61 79 65 72 73 5c   rs\9\maxplayers\
+0080  31 30 5c 67 61 6d 65 6d 6f 64 65 5c 6f 70 65 6e   10\gamemode\open
+0090  70 6c 61 79 69 6e 67 5c 67 61 6d 65 76 65 72 5c   playing\gamever\
+00a0  34 35 31 5c 6d 69 6e 6e 65 74 76 65 72 5c 34 33   451\minnetver\43
+00b0  32 5c 77 6f 72 6c 64 6c 6f 67 5c 74 72 75 65 5c   2\worldlog\true\
+00c0  77 61 6e 74 77 6f 72 6c 64 6c 6f 67 5c 74 72 75   wantworldlog\tru
+00d0  65 5c 71 75 65 72 79 69 64 5c 34 34 2e 31 5c 66   e\queryid\44.1\f
+00e0  69 6e 61 6c 5c                                    inal\ 
+
 
 5.3. status
 -----------
-(Client -> Server)
+(UDP, Client -> Server)
 
-TODO: packet dump
+0000  5c 73 74 61 74 75 73 5c                           \status\
+
+Reply looks like the following:
+
+0000  00 01 20 6d 07 d0 03 89 e4 3c 5c 67 61 6d 65 6e   .. m.Ð..ä<\gamen
+0010  61 6d 65 5c 75 74 5c 67 61 6d 65 76 65 72 5c 34   ame\ut\gamever\4
+0020  35 31 5c 6d 69 6e 6e 65 74 76 65 72 5c 34 33 32   51\minnetver\432
+0030  5c 6c 6f 63 61 74 69 6f 6e 5c 30 5c 68 6f 73 74   \location\0\host
+0040  6e 61 6d 65 5c 20 6b 2d 70 6c 61 79 2e 64 65 20   name\ k-play.de 
+0050  2f 2f 20 55 54 20 23 30 31 20 5b 50 55 52 45 5d   // UT #01 [PURE]
+0060  5c 68 6f 73 74 70 6f 72 74 5c 38 33 30 30 5c 6d   \hostport\8300\m
+0070  61 70 74 69 74 6c 65 5c 4d 61 6c 65 76 6f 6c 65   aptitle\Malevole
+0080  6e 63 65 5c 6d 61 70 6e 61 6d 65 5c 44 4d 2d 4d   nce\mapname\DM-M
+0090  61 6c 65 76 6f 6c 65 6e 63 65 5c 67 61 6d 65 74   alevolence\gamet
+00a0  79 70 65 5c 44 65 61 74 68 4d 61 74 63 68 50 6c   ype\DeathMatchPl
+00b0  75 73 5c 6e 75 6d 70 6c 61 79 65 72 73 5c 38 5c   us\numplayers\8\
+00c0  6d 61 78 70 6c 61 79 65 72 73 5c 31 30 5c 67 61   maxplayers\10\ga
+00d0  6d 65 6d 6f 64 65 5c 6f 70 65 6e 70 6c 61 79 69   memode\openplayi
+00e0  6e 67 5c 67 61 6d 65 76 65 72 5c 34 35 31 5c 6d   ng\gamever\451\m
+00f0  69 6e 6e 65 74 76 65 72 5c 34 33 32 5c 77 6f 72   innetver\432\wor
+0100  6c 64 6c 6f 67 5c 74 72 75 65 5c 77 61 6e 74 77   ldlog\true\wantw
+0110  6f 72 6c 64 6c 6f 67 5c 74 72 75 65 5c 6d 75 74   orldlog\true\mut
+0120  61 74 6f 72 73 5c 61 6e 74 69 63 76 5c 6c 69 73   ators\anticv\lis
+0130  74 65 6e 73 65 72 76 65 72 5c 46 61 6c 73 65 5c   tenserver\False\
+0140  70 61 73 73 77 6f 72 64 5c 46 61 6c 73 65 5c 74   password\False\t
+0150  69 6d 65 6c 69 6d 69 74 5c 32 30 5c 66 72 61 67   imelimit\20\frag
+0160  6c 69 6d 69 74 5c 30 5c 6d 69 6e 70 6c 61 79 65   limit\0\minplaye
+0170  72 73 5c 30 5c 63 68 61 6e 67 65 6c 65 76 65 6c   rs\0\changelevel
+0180  73 5c 54 72 75 65 5c 74 6f 75 72 6e 61 6d 65 6e   s\True\tournamen
+0190  74 5c 46 61 6c 73 65 5c 67 61 6d 65 73 74 79 6c   t\False\gamestyl
+01a0  65 5c 48 61 72 64 63 6f 72 65 5c 41 64 6d 69 6e   e\Hardcore\Admin
+01b0  4e 61 6d 65 5c 77 77 77 2e 6b 2d 70 6c 61 79 2e   Name\www.k-play.
+01c0  64 65 5c 41 64 6d 69 6e 45 4d 61 69 6c 5c 73 75   de\AdminEMail\su
+01d0  70 70 6f 72 74 40 6b 2d 70 6c 61 79 2e 64 65 5c   pport@k-play.de\
+01e0  70 6c 61 79 65 72 5f 30 5c 68 61 6c 6f 5b 4e 69   player_0\halo[Ni
+01f0  6c 5d 5c 66 72 61 67 73 5f 30 5c 37 5c 70 69 6e   l]\frags_0\7\pin
+0200  67 5f 30 5c 20 36 33 5c 74 65 61 6d 5f 30 5c 30   g_0\ 63\team_0\0
+0210  5c 6d 65 73 68 5f 30 5c 4d 61 6c 65 20 53 6f 6c   \mesh_0\Male Sol
+0220  64 69 65 72 5c 73 6b 69 6e 5f 30 5c 53 6f 6c 64   dier\skin_0\Sold
+0230  69 65 72 53 6b 69 6e 73 2e 73 6c 64 72 5c 66 61   ierSkins.sldr\fa
+0240  63 65 5f 30 5c 53 6f 6c 64 69 65 72 53 6b 69 6e   ce_0\SoldierSkin
+0250  73 2e 42 72 6f 63 6b 5c 6e 67 73 65 63 72 65 74   s.Brock\ngsecret
+0260  5f 30 5c 66 61 6c 73 65 5c 70 6c 61 79 65 72 5f   _0\false\player_
+0270  31 5c 61 63 74 5f 73 75 70 65 72 6e 6f 75 6d 5c   1\act_supernoum\
+0280  66 72 61 67 73 5f 31 5c 32 30 5c 70 69 6e 67 5f   frags_1\20\ping_
+0290  31 5c 20 39 31 5c 74 65 61 6d 5f 31 5c 31 5c 6d   1\ 91\team_1\1\m
+02a0  65 73 68 5f 31 5c 4d 61 6c 65 20 53 6f 6c 64 69   esh_1\Male Soldi
+02b0  65 72 5c 73 6b 69 6e 5f 31 5c 53 6f 6c 64 69 65   er\skin_1\Soldie
+02c0  72 53 6b 69 6e 73 2e 52 61 77 53 5c 66 61 63 65   rSkins.RawS\face
+02d0  5f 31 5c 53 6f 6c 64 69 65 72 53 6b 69 6e 73 2e   _1\SoldierSkins.
+02e0  41 72 6b 6f 6e 5c 6e 67 73 65 63 72 65 74 5f 31   Arkon\ngsecret_1
+02f0  5c 66 61 6c 73 65 5c 70 6c 61 79 65 72 5f 32 5c   \false\player_2\
+0300  55 72 75 6b 2d 48 61 69 5c 66 72 61 67 73 5f 32   Uruk-Hai\frags_2
+0310  5c 35 33 5c 70 69 6e 67 5f 32 5c 20 36 36 5c 74   \53\ping_2\ 66\t
+0320  65 61 6d 5f 32 5c 30 5c 6d 65 73 68 5f 32 5c 46   eam_2\0\mesh_2\F
+0330  65 6d 61 6c 65 20 53 6f 6c 64 69 65 72 5c 73 6b   emale Soldier\sk
+0340  69 6e 5f 32 5c 53 47 69 72 6c 53 6b 69 6e 73 2e   in_2\SGirlSkins.
+0350  56 65 6e 6d 5c 66 61 63 65 5f 32 5c 53 47 69 72   Venm\face_2\SGir
+0360  6c 53 6b 69 6e 73 2e 41 74 68 65 6e 61 5c 6e 67   lSkins.Athena\ng
+0370  73 65 63 72 65 74 5f 32 5c 66 61 6c 73 65 5c 71   secret_2\false\q
+0380  75 65 72 79 69 64 5c 36 32 2e 31                  ueryid\62.1     
+
+2nd packet, observe the queryid variable:
+
+0000  00 01 20 6d 07 d0 02 ca  45 61 5c 70 6c 61 79 65   .. m.Ð.Ê Ea\playe
+0010  72 5f 33 5c 43 72 61 69  2d 5a 5c 66 72 61 67 73   r_3\Crai -Z\frags
+0020  5f 33 5c 37 35 5c 70 69  6e 67 5f 33 5c 20 34 39   _3\75\pi ng_3\ 49
+0030  5c 74 65 61 6d 5f 33 5c  31 5c 6d 65 73 68 5f 33   \team_3\ 1\mesh_3
+0040  5c 46 65 6d 61 6c 65 20  53 6f 6c 64 69 65 72 5c   \Female  Soldier\
+0050  73 6b 69 6e 5f 33 5c 53  47 69 72 6c 53 6b 69 6e   skin_3\S GirlSkin
+0060  73 2e 66 62 74 68 5c 66  61 63 65 5f 33 5c 53 47   s.fbth\f ace_3\SG
+0070  69 72 6c 53 6b 69 6e 73  2e 41 6e 6e 61 6b 61 5c   irlSkins .Annaka\
+0080  6e 67 73 65 63 72 65 74  5f 33 5c 74 72 75 65 5c   ngsecret _3\true\
+0090  70 6c 61 79 65 72 5f 34  5c 69 4e 4b 41 53 5c 66   player_4 \iNKAS\f
+00a0  72 61 67 73 5f 34 5c 34  33 5c 70 69 6e 67 5f 34   rags_4\4 3\ping_4
+00b0  5c 20 39 30 5c 74 65 61  6d 5f 34 5c 31 5c 6d 65   \ 90\tea m_4\1\me
+00c0  73 68 5f 34 5c 4d 61 6c  65 20 43 6f 6d 6d 61 6e   sh_4\Mal e Comman
+00d0  64 6f 5c 73 6b 69 6e 5f  34 5c 43 6f 6d 6d 61 6e   do\skin_ 4\Comman
+00e0  64 6f 53 6b 69 6e 73 2e  63 6d 64 6f 5c 66 61 63   doSkins. cmdo\fac
+00f0  65 5f 34 5c 43 6f 6d 6d  61 6e 64 6f 53 6b 69 6e   e_4\Comm andoSkin
+0100  73 2e 42 6c 61 6b 65 5c  6e 67 73 65 63 72 65 74   s.Blake\ ngsecret
+0110  5f 34 5c 74 72 75 65 5c  70 6c 61 79 65 72 5f 35   _4\true\ player_5
+0120  5c 53 6b 69 54 7a 5c 66  72 61 67 73 5f 35 5c 31   \SkiTz\f rags_5\1
+0130  37 5c 70 69 6e 67 5f 35  5c 20 35 31 5c 74 65 61   7\ping_5 \ 51\tea
+0140  6d 5f 35 5c 32 35 35 5c  6d 65 73 68 5f 35 5c 4d   m_5\255\ mesh_5\M
+0150  61 6c 65 20 53 6f 6c 64  69 65 72 5c 73 6b 69 6e   ale Sold ier\skin
+0160  5f 35 5c 53 6f 6c 64 69  65 72 53 6b 69 6e 73 2e   _5\Soldi erSkins.
+0170  73 6c 64 72 5c 66 61 63  65 5f 35 5c 53 6f 6c 64   sldr\fac e_5\Sold
+0180  69 65 72 53 6b 69 6e 73  2e 42 72 6f 63 6b 5c 6e   ierSkins .Brock\n
+0190  67 73 65 63 72 65 74 5f  35 5c 66 61 6c 73 65 5c   gsecret_ 5\false\
+01a0  70 6c 61 79 65 72 5f 36  5c 4d 72 2e 46 61 68 72   player_6 \Mr.Fahr
+01b0  65 6e 68 65 69 74 5c 66  72 61 67 73 5f 36 5c 39   enheit\f rags_6\9
+01cc  30 5c 70 69 6e 67 5f 36  5c 20 31 35 38 5c 74 65   0\ping_6 \ 158\te
+01d0  61 6d 5f 36 5c 31 5c 6d  65 73 68 5f 36 5c 4d 61   am_6\1\m esh_6\Ma
+01e0  6c 65 20 53 6f 6c 64 69  65 72 5c 73 6b 69 6e 5f   le Soldi er\skin_
+01f0  36 5c 53 6f 6c 64 69 65  72 53 6b 69 6e 73 2e 68   6\Soldie rSkins.h
+0200  6b 69 6c 5c 66 61 63 65  5f 36 5c 53 6f 6c 64 69   kil\face _6\Soldi
+0210  65 72 53 6b 69 6e 73 2e  6d 61 74 72 69 78 5c 6e   erSkins. matrix\n
+0220  67 73 65 63 72 65 74 5f  36 5c 74 72 75 65 5c 70   gsecret_ 6\true\p
+0230  6c 61 79 65 72 5f 37 5c  64 65 6e 61 74 75 72 61   layer_7\ denatura
+0240  74 5c 66 72 61 67 73 5f  37 5c 37 37 5c 70 69 6e   t\frags_ 7\77\pin
+0250  67 5f 37 5c 20 34 38 5c  74 65 61 6d 5f 37 5c 31   g_7\ 48\ team_7\1
+0260  5c 6d 65 73 68 5f 37 5c  4d 61 6c 65 20 53 6f 6c   \mesh_7\ Male Sol
+0270  64 69 65 72 5c 73 6b 69  6e 5f 37 5c 53 6f 6c 64   dier\ski n_7\Sold
+0280  69 65 72 53 6b 69 6e 73  2e 68 6b 69 6c 5c 66 61   ierSkins .hkil\fa
+0290  63 65 5f 37 5c 53 6f 6c  64 69 65 72 53 6b 69 6e   ce_7\Sol dierSkin
+02a0  73 2e 6d 61 74 72 69 78  5c 6e 67 73 65 63 72 65   s.matrix \ngsecre
+02b0  74 5f 37 5c 74 72 75 65  5c 71 75 65 72 79 69 64   t_7\true \queryid
+02c0  5c 36 32 2e 32 5c 66 69  6e 61 6c 5c               \62.2\fi nal\    
+
+
+TODO: clean up
+TODO: more packets?
 TODO: description
 
 5.4. REPORTQUERY
 ----------------
-(Client -> Server)
+(UDP, Client -> Server)
 
-TODO: packet dump
-TODO: description
+0000  52 45 50 4f 52 54 51 55 45 52 59                  REPORTQUERY
+
+TODO: dump of reply
+
+This is broadcasted by the UT client to find LAN servers. Packet is sent to
+UDP ports 8777-8786.
 
 5.5. HTTP Traffic
 -----------------
-(Client -> Master)
+(TCP, Client -> Master:80)
 
-TODO: packet dump
+MOTD request:
+
+0000  47 45 54 20 2f 55 70 64 61 74 65 53 65 72 76 65   GET /UpdateServe
+0010  72 2f 75 74 6d 6f 74 64 34 35 31 2e 68 74 6d 6c   r/utmotd451.html
+0020  20 48 54 54 50 2f 31 2e 31 0d 0a 55 73 65 72 2d    HTTP/1.1..User-
+0030  41 67 65 6e 74 3a 20 55 6e 72 65 61 6c 0d 0a 43   Agent: Unreal..C
+0040  6f 6e 6e 65 63 74 69 6f 6e 3a 20 63 6c 6f 73 65   onnection: close
+0050  0d 0a 48 6f 73 74 3a 20 75 6e 72 65 61 6c 2e 65   ..Host: unreal.e
+0060  70 69 63 67 61 6d 65 73 2e 63 6f 6d 3a 38 30 0d   picgames.com:80.
+0070  0a 0d 0a                                          ...            
+
+MOTD fallback request, if above request fails:
+
+0000  47 45 54 20 2f 55 70 64 61 74 65 53 65 72 76 65   GET /UpdateServe
+0010  72 2f 75 74 6d 6f 74 64 66 61 6c 6c 62 61 63 6b   r/utmotdfallback
+0020  2e 68 74 6d 6c 20 48 54 54 50 2f 31 2e 31 0d 0a   .html HTTP/1.1..
+0030  55 73 65 72 2d 41 67 65 6e 74 3a 20 55 6e 72 65   User-Agent: Unre
+0040  61 6c 0d 0a 43 6f 6e 6e 65 63 74 69 6f 6e 3a 20   al..Connection: 
+0050  63 6c 6f 73 65 0d 0a 48 6f 73 74 3a 20 75 6e 72   close..Host: unr
+0060  65 61 6c 2e 65 70 69 63 67 61 6d 65 73 2e 63 6f   eal.epicgames.co
+0070  6d 3a 38 30 0d 0a 0d 0a                           m:80....
+
+masterserver.txt request:
+
+0000  47 45 54 20 2f 55 70 64 61 74 65 53 65 72 76 65   GET /UpdateServe
+0010  72 2f 75 74 6d 61 73 74 65 72 73 65 72 76 65 72   r/utmasterserver
+0020  2e 74 78 74 20 48 54 54 50 2f 31 2e 31 0d 0a 55   .txt HTTP/1.1..U
+0030  73 65 72 2d 41 67 65 6e 74 3a 20 55 6e 72 65 61   ser-Agent: Unrea
+0040  6c 0d 0a 43 6f 6e 6e 65 63 74 69 6f 6e 3a 20 63   l..Connection: c
+0050  6c 6f 73 65 0d 0a 48 6f 73 74 3a 20 75 6e 72 65   lose..Host: unre
+0060  61 6c 2e 65 70 69 63 67 61 6d 65 73 2e 63 6f 6d   al.epicgames.com
+0070  3a 38 30 0d 0a 0d 0a                              :80....
+
+utircserver.txt request:
+
+0000  47 45 54 20 2f 55 70 64 61 74 65 53 65 72 76 65   GET /UpdateServe
+0010  72 2f 75 74 69 72 63 73 65 72 76 65 72 2e 74 78   r/utircserver.tx
+0020  74 20 48 54 54 50 2f 31 2e 31 0d 0a 55 73 65 72   t HTTP/1.1..User
+0030  2d 41 67 65 6e 74 3a 20 55 6e 72 65 61 6c 0d 0a   -Agent: Unreal..
+0040  43 6f 6e 6e 65 63 74 69 6f 6e 3a 20 63 6c 6f 73   Connection: clos
+0050  65 0d 0a 48 6f 73 74 3a 20 75 6e 72 65 61 6c 2e   e..Host: unreal.
+0060  65 70 69 63 67 61 6d 65 73 2e 63 6f 6d 3a 38 30   epicgames.com:80
+0070  0d 0a 0d 0a                                       ....
+
+TODO: description of the files
 TODO: description
 
 5.6. Master Server Traffic
 --------------------------
-(Master -> Client)
+The following packets are chronologically ordered: 
+1st packet transmitted:
+(TCP, Master:28900 -> Client)
+
+0000  5c 62 61 73 69 63 5c 5c 73 65 63 75 72 65 5c 77   \basic\\secure\w
+0010  6f 6f 6b 69 65                                    ookie
+
+2nd packet:
+(TCP, Client -> Master:28900)
+
+0000  5c 67 61 6d 65 6e 61 6d 65 5c 75 74 5c 6c 6f 63   \gamename\ut\loc
+0010  61 74 69 6f 6e 5c 30 5c 76 61 6c 69 64 61 74 65   ation\0\validate
+0020  5c 32 2f 54 59 46 4d 52 63 5c 66 69 6e 61 6c 5c   \2/TYFMRc\final\
+
+3rd packet:
+(TCP, Client -> Master:28900)
+
+0000  5c 6c 69 73 74 5c 5c 67 61 6d 65 6e 61 6d 65 5c   \list\\gamename\
+0010  75 74 5c 66 69 6e 61 6c 5c                        ut\final\
+
+Then the client just receives the server list packets from the master:
+(TCP, Master:28900 -> Client)
+
+0000  5c 69 70 5c 36 39 2e 32 38 2e 32 32 30 2e 31 32   \ip\69.28.220.12
+0010  33 3a 37 37 37 38 5c 69 70 5c 32 31 36 2e 31 32   3:7778\ip\216.12
+0020  39 2e 32 34 32 2e 32 37 3a 38 37 38 39 5c 69 70   9.242.27:8789\ip
+0030  5c 32 31 32 2e 34 32 2e 31 36 2e 38 39 3a 32 37   \212.42.16.89:27
+0040  30 30 31 5c ...                                   001\
+ .
+ . (same or more packets)
+ .
+xxxx  66 69 6e 61 6c 5c                                 final\
 
 TODO: packet dump
 TODO: description
@@ -1294,22 +1718,581 @@ TODO: description
 6. QuakeWorld protocol
 ======================
 
-TODO: wip
+Master port: UDP 27000
+Server port: UDP 27500
+
+
+6.1. status
+-----------
+(UDP, Client -> Server:27500)
+
+0000  ff ff ff ff 73 74 61 74 75 73 0a                  ....status.
+
+This packet requests information from the server.
+
+
+6.2. n
+------
+(UDP, Server:27500 -> Client)
+
+QW server with no players:
+--------------------------
+0000  ff ff ff ff 6e 5c 73 70 61 77 6e 5c 30 5c 77 61   ....n\spawn\0\wa
+0010  74 65 72 76 69 73 5c 30 5c 2a 76 65 72 73 69 6f   tervis\0\*versio
+0020  6e 5c 32 2e 34 30 5c 68 6f 73 74 6e 61 6d 65 5c   n\2.40\hostname\
+0030  45 55 6e 65 74 20 5a 20 53 6d 61 6c 6c 20 44 65   EUnet Z Small De
+0040  61 74 68 6d 61 74 63 68 5c 2a 67 61 6d 65 64 69   athmatch\*gamedi
+0050  72 5c 71 77 5c 6d 61 78 66 70 73 5c 31 35 30 5c   r\qw\maxfps\150\
+0060  66 72 61 67 6c 69 6d 69 74 5c 30 5c 74 65 61 6d   fraglimit\0\team
+0070  70 6c 61 79 5c 30 5c 6d 61 78 63 6c 69 65 6e 74   play\0\maxclient
+0080  73 5c 38 5c 73 61 6d 65 6c 65 76 65 6c 5c 32 5c   s\8\samelevel\2\
+0090  5b 77 77 77 5d 5c 68 74 74 70 3a 2f 2f 77 77 77   [www]\http://www
+00a0  2e 63 6c 61 6e 2d 7a 2e 6f 72 67 2f 5c 5b 6d 61   .clan-z.org/\[ma
+00b0  70 73 5d 5c 68 74 74 70 3a 2f 2f 77 77 77 2e 63   ps]\http://www.c
+00c0  6c 61 6e 2d 7a 2e 6f 72 67 2f 66 69 6c 65 73 2f   lan-z.org/files/
+00d0  5c 5b 6d 61 78 72 61 74 65 5d 5c 32 30 30 30 30   \[maxrate]\20000
+00e0  5c 6d 61 78 73 70 65 63 74 61 74 6f 72 73 5c 38   \maxspectators\8
+00f0  2e 30 30 30 30 30 30 5c 2a 70 72 6f 67 73 5c 31   .000000\*progs\1
+0100  32 38 34 34 5c 70 6f 77 65 72 75 70 73 5c 30 5c   2844\powerups\0\
+0110  64 65 61 74 68 6d 61 74 63 68 5c 33 5c 74 69 6d   deathmatch\3\tim
+0120  65 6c 69 6d 69 74 5c 32 30 5c 6d 61 70 5c 64 6d   elimit\20\map\dm
+0130  36 0a 00                                          6..
+
+
+QW server with 7 players:
+-------------------------
+0000  ff ff ff ff 6e 5c 66 72 61 67 6c 69 6d 69 74 5c   ....n\fraglimit\
+0010  30 5c 74 65 61 6d 70 6c 61 79 5c 30 5c 6d 61 78   0\teamplay\0\max
+0020  76 69 70 5f 73 70 65 63 74 61 74 6f 72 73 5c 30   vip_spectators\0
+0030  5c 73 70 61 77 6e 5c 30 5c 77 61 74 65 72 76 69   \spawn\0\watervi
+0040  73 5c 30 5c 2a 71 77 65 5f 76 65 72 73 69 6f 6e   s\0\*qwe_version
+0050  5c 30 2e 31 37 33 5c 2a 76 65 72 73 69 6f 6e 5c   \0.173\*version\
+0060  32 2e 34 30 5c 68 6f 73 74 6e 61 6d 65 5c 58 53   2.40\hostname\XS
+0070  34 41 4c 4c 20 46 72 65 65 20 46 6f 72 20 41 6c   4ALL Free For Al
+0080  6c 5c 74 69 6d 65 6c 69 6d 69 74 5c 31 32 5c 64   l\timelimit\12\d
+0090  65 61 74 68 6d 61 74 63 68 5c 33 5c 73 61 6d 65   eathmatch\3\same
+00a0  6c 65 76 65 6c 5c 32 5c 6d 61 78 63 6c 69 65 6e   level\2\maxclien
+00b0  74 73 5c 31 36 5c 6d 61 78 73 70 65 63 74 61 74   ts\16\maxspectat
+00c0  6f 72 73 5c 36 5c 2a 67 61 6d 65 64 69 72 5c 71   ors\6\*gamedir\q
+00d0  77 5c 6e 65 65 64 70 61 73 73 5c 30 5c 61 64 6d   w\needpass\0\adm
+00e0  69 6e 5c 59 6f 4d 61 6d 61 28 79 6f 6d 61 6d 61   in\YoMama(yomama
+00f0  40 78 73 34 61 6c 6c 2e 6e 6c 29 20 2f 20 46 6c   @xs4all.nl) / Fl
+0100  65 50 73 65 72 20 28 6a 65 73 70 65 72 64 65 67   ePser (jesperdeg
+0110  72 61 61 66 40 79 61 68 6f 6f 2e 63 6f 6d 5c 2a   raaf@yahoo.com\*
+0120  70 72 6f 67 73 5c 31 31 35 33 34 5c 6d 61 70 5c   progs\11534\map\
+0130  75 6b 63 6c 64 6d 32 0a 31 37 39 30 35 20 30 20   ukcldm2.17905 0 
+0140  30 20 34 31 20 22 70 61 73 74 22 20 22 74 68 75   0 41 "past" "thu
+0150  67 34 6c 69 66 65 22 20 31 30 20 33 0a 31 37 39   g4life" 10 3.179
+0160  31 31 20 32 20 30 20 33 31 20 22 72 69 6f 74 22   11 2 0 31 "riot"
+0170  20 22 6f 30 6f 30 30 6f e8 20 e8 20 e8 2e 70 63    "o0o00o. . ..pc
+0180  78 22 20 31 31 20 31 31 0a 31 37 38 39 36 20 32   x" 11 11.17896 2 
+0190  20 30 20 36 30 20 22 44 44 22 20 22 6a 65 64 69    0 60 "DD" "jedi
+01a0  22 20 34 20 34 0a 31 37 38 38 39 20 31 20 30 20   " 4 4.17889 1 0 
+01b0  34 30 20 22 c4 75 6b 65 20 ce 75 6b 65 6d 22 20   40 ".uke .ukem" 
+01c0  22 62 61 73 65 22 20 30 20 30 0a 31 37 38 35 39   "base" 0 0.17859
+01d0  20 32 20 30 20 34 32 20 22 9d cb e5 f7 ec e9 ef    2 0 42 ".......
+01e0  9f 22 20 22 24 22 20 30 20 34 0a 31 37 38 39 30   ." "$" 0 4.17890
+01f0  20 30 20 30 20 39 39 39 20 22 8d 63 68 69 70 73    0 0 999 ".chips
+0200  22 20 22 6e 6f 6e 65 22 20 31 20 31 0a 31 37 39   " "none" 1 1.179
+0210  30 38 20 31 20 30 20 32 38 20 22 72 65 71 22 20   08 1 0 28 "req" 
+0220  22 63 68 65 66 73 22 20 31 32 20 38 0a 00         "chefs" 12 8..
+
+Example for client message display:
+-----------------------------------
+0000  ff ff ff ff 6e 42 61 64 20 72 63 6f 6e 5f 70 61   ....nBad rcon_pa
+0010  73 73 77 6f 72 64 2e 0a                           ssword..
+
+This is the response to a "status" packet. The "n" packet is also used to
+display messages on the client as seen in the last packet dump.
+The player information is organised as follows:
+struct {
+	int user_id;
+	int frags;
+	int time_spend_on_server;
+	int ping;
+	char *player_name;
+	char *player_skin;
+	int top_color;
+	int bottom_color;
+};
+
+6.3. c
+------
+(UDP, Client -> Master:27000)
+
+0000  63 0a 00                                          c..
+
+This packet requests the server list from the master.
+
+6.4. d
+------
+(UDP, Master:27000 -> Client)
+
+0000  ff ff ff ff 64 0a 42 45 65 94 6b 6c cd f5 49 6f   ....d.BEe.kl..Io
+0010  6b 6d c8 2a 5c ad 6b 6c c8 2c 38 a3 6b 6c d1 b8   km.*\.kl.,8.kl..
+0020  ea 54 6b 6c c2 6d 06 dc 6b 6c d1 bf cd b7 6b 6c   .Tkl.m..kl....kl
+0030  92 c9 07 4e 6b 76 d0 91 60 6f 6b 6d d4 98 20 8b   ...Nkv..`okm.. .
+0040  6b 6c 3e 50 85 b7 6b 6c d8 0c 56 0d 6b 6c 42 33   kl>P..kl..V.klB3
+0050  cd 38 6b 6c d1 92                                 .8kl..
+
+This is the reply to a "c" (server list request) packet. After the
+"\xff\xff\xff\xffd\n" string the servers are listed in 6 byte blocks. 4 bytes
+for the IP and 2 bytes for the port. There are no delimiters.
+
+6.5. ping
+---------
+(UDP, Master:27000 -> Server:27500)
+
+0000  ff ff ff ff 70 69 6e 67 0a 00                     ....ping..
+
+6.6. k
+------
+(UDP, Server:27500 -> Master:27000/Client)
+
+0000  6b 00                                             k.
+
+Ping from Server to Master or client.
+
+6.7. l
+------
+(UDP, All -> All)
+
+0000  ff ff ff ff 6c 0a 00                              ....l..
+
+This is the reply/ack to "ping" and "k" packets.
+
+6.8. a
+------
+(UDP, Server:27500 -> Master:27000)
+
+0000  61 0a 31 0a 30 0a                                 a.1.0.
+
+This is the heartbeat packet.
+TODO: What's the meaning of the numbers?
+
+6.9. C
+------
+(UDP, Server:27500 -> Master:27000)
+
+0000  43 0a                                             C.
+
+This packet tells the master that the server is shutting down.
 
 --
 
-7. Links
-========
+7. HexenWorld protocol
+======================
+
+Master port: UDP 26900
+Server port: UDP 26950
+
+--
+
+8. RtCW protocol
+================
+
+Server port: UDP 27960
+
+Master DNS name: wolf.idsoftware.com
+Master port: UDP 27950
+MOTD DNS name: wolf.idsoftware.com
+MOTD server port: UDP 27951
+Auth server DNS name: wolf.idsoftware.com
+Auth server port: UDP 27952
+
+The RtCW protocol is similar to the Q3 protocol.
+
+8.1. heartbeat
+--------------
+(UDP, Server:27960 -> Master:27950)
+
+0000  ff ff ff ff 68 65 61 72 74 62 65 61 74 20 57 6f   ....heartbeat Wo
+0010  6c 66 65 6e 73 74 65 69 6e 2d 31 0a               lfenstein-1.
+
+Exactly like the Q3 heartbeat except for the different option.
+
+8.2. getinfo
+------------
+(UDP, Master:27950 -> Server:27960)
+
+getinfo from Wolf master:
+-------------------------
+0000  ff ff ff ff 67 65 74 69 6e 66 6f 20 31 30 35 31   ....getinfo 1051
+0010  33 39 36 30 35 30 34 34 35                        396050445
+
+TODO: getinfo without challenge
+
+Just like the Q3 protocol. The challenge number is a 32 bit signed integer and
+is optional.
+
+8.3. getIpAuthorize
+-------------------
+(UDP, Server:27960 -> Master:27950)
+
+0000  ff ff ff ff 67 65 74 49 70 41 75 74 68 6f 72 69   ....getIpAuthori
+0010  7a 65 20 2d 33 34 32 33 39 30 34 39 39 20 31 39   ze -342390499 19
+0020  32 2e 32 34 36 2e 34 30 2e 36 35 20 20 30         2.246.40.65  0
+
+This packet is sent by the server to the master every time a client is
+connecting. It's used to check with the master if the client has a valid CD key
+and has authorized itself at the master. The number is a challenge number which
+is a 32 bit signed integer.
+TODO: What is the meaning of the "0" at the end of the packet?
+
+8.4. ipAuthorize
+----------------
+(UDP, Master:27950 -> Server:27960)
+
+0000  ff ff ff ff 69 70 41 75 74 68 6f 72 69 7a 65 20   ....ipAuthorize 
+0010  2d 33 34 32 33 39 30 34 39 39 20 64 65 6e 79 20   -342390499 deny 
+0020  49 4e 56 41 4c 49 44 5f 43 44 4b 45 59            INVALID_CDKEY
+
+This is the reply to a "getIpAuthorize" packet. It is used to authorize a
+client connecting to a server. The server sends the "getIpAuthorize" packet to
+the master, which looks up if the cdkey of the IP is valid or not. If the IP
+is not authorized by the master it sends the above packet with the string
+"deny INVALID_CDKEY". The number is a challenge number which is a 32bit signed
+integer.
+
+8.5. infoResponse
+-----------------
+(UDP, Server:27960 -> Client)
+
+infoResponse with challenge:
+----------------------------
+0000  ff ff ff ff 69 6e 66 6f 52 65 73 70 6f 6e 73 65   ....infoResponse
+0010  0a 5c 63 68 61 6c 6c 65 6e 67 65 5c 31 30 35 31   .\challenge\1051
+0020  33 39 36 30 35 30 34 34 35 5c 70 72 6f 74 6f 63   396050445\protoc
+0030  6f 6c 5c 35 30 5c 68 6f 73 74 6e 61 6d 65 5c 57   ol\50\hostname\W
+0040  6f 6c 66 48 6f 73 74 5c 6d 61 70 6e 61 6d 65 5c   olfHost\mapname\
+0050  6d 70 5f 62 65 61 63 68 5c 63 6c 69 65 6e 74 73   mp_beach\clients
+0060  5c 30 5c 73 76 5f 6d 61 78 63 6c 69 65 6e 74 73   \0\sv_maxclients
+0070  5c 32 30 5c 67 61 6d 65 74 79 70 65 5c 35 5c 70   \20\gametype\5\p
+0080  75 72 65 5c 31 5c 73 76 5f 61 6c 6c 6f 77 41 6e   ure\1\sv_allowAn
+0090  6f 6e 79 6d 6f 75 73 5c 30 5c 67 61 6d 65 73 6b   onymous\0\gamesk
+00a0  69 6c 6c 5c 33 5c 66 72 69 65 6e 64 6c 79 46 69   ill\3\friendlyFi
+00b0  72 65 5c 31 5c 6d 61 78 6c 69 76 65 73 5c 30 5c   re\1\maxlives\0\
+00c0  74 6f 75 72 6e 65 79 5c 30                        tourney\0
+
+TODO: infoResponse from a populated server
+
+8.6. getmotd
+------------
+(UDP, Client -> Master:27951)
+
+0000  ff ff ff ff 67 65 74 6d 6f 74 64 20 22 5c 63 68   ....getmotd "\ch
+0010  61 6c 6c 65 6e 67 65 5c 36 38 33 32 32 33 31 36   allenge\68322316
+0020  37 5c 72 65 6e 64 65 72 65 72 5c 47 65 46 6f 72   7\renderer\GeFor
+0030  63 65 33 2f 41 47 50 2f 53 53 45 5c 76 65 72 73   ce3/AGP/SSE\vers
+0040  69 6f 6e 5c 57 6f 6c 66 20 31 2e 31 2d 4d 50 20   ion\Wolf 1.1-MP 
+0050  6c 69 6e 75 78 2d 69 33 38 36 20 44 65 63 20 32   linux-i386 Dec 2
+0060  35 20 32 30 30 31 22 0a                           5 2001".
+
+This packet requests the Motto of the Day from the master. The packet contains
+some information about the client such as the value of the "renderer" and
+"version" variables. It also contains a challenge number, which is a 32 bit
+signed integer.
+
+8.7. motd
+---------
+(UDP, Master:27951 -> Client)
+
+0000  ff ff ff ff 6d 6f 74 64 20 22 63 68 61 6c 6c 65   ....motd "challe
+0010  6e 67 65 5c 36 38 33 32 32 33 31 36 37 5c 6d 6f   nge\683223167\mo
+0020  74 64 5c 57 69 6c 6c 6b 6f 6d 6d 65 6e 21 20 20   td\Willkommen!  
+0030  57 65 6c 63 6f 6d 65 21 5c 22                     Welcome!\"
+
+This is the reply to a "getmotd" packet. It contains the challenge number and
+the Motto of the Day. The MOTD is shown on the client while loading the game
+data.
+
+--
+
+9. Doom3 protocol
+=================
+
+Server port: UDP 27666
+Master port: UDP 27650
+Master DNS name: idnet.ua-corp.com
+
+
+9.1. getServers
+---------------
+(UDP, Client -> Master:27650)
+
+0000  ff ff 67 65 74 53 65 72 76 65 72 73 00 21 00 01   ..getServers.!..
+0010  00 00 00                                          ...
+
+This packet requests the server list from the master. A \0 delimiter follows and
+the next 4 bytes are the requested protocol version (In this example 1.33).
+Then after the next \0 delimiter we have the filter byte. The LSBs of the 18th
+byte are interpreted as a server filter and the MSBs as a game type filter.
+0x01	passworded servers
+0x02	non-passworded servers
+0x04	no full servers
+0x08	no full/empty servers
+0x10	Deathmatch
+0x20	Tournament/1v1
+0x30	TDM		XXX: 0x30? not 0x40?
+
+9.2. versionCheck
+-----------------
+(UDP, Server:27666/Client -> Master:27650)
+
+0000  ff ff 76 65 72 73 69 6f 6e 43 68 65 63 6b 00 21   ..versionCheck.!
+0010  00 01 00 00 00 44 4f 4f 4d 20 31 2e 30 2e 31 32   .....DOOM 1.0.12
+0020  36 32 20 77 69 6e 2d 78 38 36 20 4a 75 6c 20 20   62 win-x86 Jul
+0030  38 20 32 30 30 34 20 31 36 3a 34 36 3a 33 37 00   8 2004 16:46:37.
+0040  00                                                .
+
+FIXME: No clue what this packet is all about.
+The 4 bytes after "versionCheck" plus \0 delimiter are the protocol version.
+(see getServers)
+
+9.3. servers
+------------
+(UDP, Master:27650 -> Client)
+
+0000  ff ff 73 65 72 76 65 72 73 00 42 1b 42 dd 12 6c   ..servers.B.B..l
+0010  18 76 2d fa 12 6c 18 00 be ad 12 6c 43 a7 fe 3b   .v-..l.....lC..;
+0020  12 6c d9 e2 e0 0e 12 6c 80 c2 44 4b 12 6c cf 24   .l.....l..DK.l.$
+0030  d1 8c 12 6c 46 19 7d a3 12 6c 45 09 a1 6b 12 6c   ...lF.}..lE..k.l
+0040  45 6e 21 52 12 6c 40 ed 6b 14 cf 6c 44 0a dd 7e   En!R.l@.k..lD..~
+0050  12 6c 18 a7 e7 53 0a eb 40 ed 6b 14 3f 6b 18 f7   .l...S..@.k.?k..
+0060  95 7c 12 6c 18 04 3a 56 12 6c 18 21 f0 33 43 fa   .|.l..:V.l.!.3C.
+0070  53 e2 14 80 12 6c 50 da 2c 21 12 6c 0c d8 d7 1b   S....lP.,!.l....
+0080  12 6c 43 12 b2 34 12 6c de b7 1c 1f 36 0b d8 0c   .lC..4.l....6...
+0090  46 02 12 6c 45 16 a6 42 12 6c 52 d1 f0 a6 12 6c   F..lE..B.lR....l
+00a0  18 2c 40 75 39 eb 43 65 ba 98 12 6c 40 51 59 da   .,@u9.Ce...l@QY.
+00b0  12 6c 42 a6 bb d5 12 6c 42 d8 dc 6a 12 6c 3e b2   .lB....lB..j.l>.
+00c0  43 f7 12 6c 45 84 8f 82 12 6c 41 31 ad 0d 12 6c   C..lE....lA1...l
+00d0  41 1b 00 ca 12 6c 44 40 c8 9a 12 6c 40 88 c3 43   A....lD@...l@..C
+00e0  12 6c 18 72 f9 ed 12 6c 18 a7 b2 c2 89 f0 46 f0   .l.r...l......F.
+00f0  0b 87 12 6c 44 35 30 32 12 6c 42 c9 e6 01 50 8a   ...lD502.lB...P.
+
+Looks like the "servers" packet from Q2. Thera are no delimiters and we have
+IP/port pairs with 4 bytes for IP and 2 bytes for the port address. And there
+is no limit on the packet length. Beware the port address; it's in network
+byte order.
+
+9.4. getInfo
+------------
+(UDP, Master:27650/Client -> Server:27666)
+
+getInfo without challenge:
+--------------------------
+0000  ff ff 67 65 74 49 6e 66 6f 00 00 00 00 00         ..getInfo.....
+
+getInfo with challenge:
+-----------------------
+0000  ff ff 67 65 74 49 6e 66 6f 00 01 01 01 01         ..getInfo.....
+
+Request server information. After "getInfo" and a \0 delimiter follows the
+challenge number as a 4 byte integer.
+
+9.5. infoResponse
+-----------------
+(UDP, Server:27666 -> Master:27650/Client)
+
+infoResponse from an empty server:
+----------------------------------
+0000  ff ff 69 6e 66 6f 52 65 73 70 6f 6e 73 65 00 00   ..infoResponse..
+0010  00 00 00 21 00 01 00 66 73 5f 67 61 6d 65 00 00   ...!...fs_game..
+0020  73 69 5f 76 65 72 73 69 6f 6e 00 44 4f 4f 4d 20   si_version.DOOM 
+0030  31 2e 30 2e 31 32 36 32 20 77 69 6e 2d 78 38 36   1.0.1262 win-x86
+0040  20 4a 75 6c 20 20 38 20 32 30 30 34 20 31 36 3a    Jul  8 2004 16:
+0050  34 36 3a 33 37 00 73 69 5f 6d 61 78 50 6c 61 79   46:37.si_maxPlay
+0060  65 72 73 00 31 36 00 73 69 5f 73 70 65 63 74 61   ers.16.si_specta
+0070  74 6f 72 73 00 31 00 73 69 5f 75 73 65 70 61 73   tors.1.si_usepas
+0080  73 00 31 00 73 69 5f 77 61 72 6d 75 70 00 30 00   s.1.si_warmup.0.
+0090  73 69 5f 74 65 61 6d 44 61 6d 61 67 65 00 30 00   si_teamDamage.0.
+00a0  73 69 5f 74 69 6d 65 4c 69 6d 69 74 00 31 30 00   si_timeLimit.10.
+00b0  73 69 5f 66 72 61 67 4c 69 6d 69 74 00 31 30 00   si_fragLimit.10.
+00c0  73 69 5f 6d 61 70 00 67 61 6d 65 2f 6d 70 2f 64   si_map.game/mp/d
+00d0  33 64 6d 31 00 73 69 5f 67 61 6d 65 54 79 70 65   3dm1.si_gameType
+00e0  00 64 65 61 74 68 6d 61 74 63 68 00 73 69 5f 6e   .deathmatch.si_n
+00f0  61 6d 65 00 2a 42 57 2a 20 4f 7a 27 73 20 43 6c   ame.*BW* Oz's Cl
+0100  6f 73 65 74 00 73 69 5f 70 75 72 65 00 31 00 67   oset.si_pure.1.g
+0110  61 6d 65 6e 61 6d 65 00 62 61 73 65 44 4f 4f 4d   amename.baseDOOM
+0120  2d 31 00 00 00 20 01 00 00 00                     -1... ....
+
+infoResponse from a populated server:
+-------------------------------------
+0000  ff ff 69 6e 66 6f 52 65 73 70 6f 6e 73 65 00 00   ..infoResponse..
+0010  00 00 00 21 00 01 00 66 73 5f 67 61 6d 65 00 00   ...!...fs_game..
+0020  73 69 5f 76 65 72 73 69 6f 6e 00 44 4f 4f 4d 20   si_version.DOOM 
+0030  31 2e 30 2e 31 32 36 32 20 77 69 6e 2d 78 38 36   1.0.1262 win-x86
+0040  20 4a 75 6c 20 20 38 20 32 30 30 34 20 31 36 3a    Jul  8 2004 16:
+0050  34 36 3a 33 37 00 73 69 5f 6d 61 78 70 6c 61 79   46:37.si_maxplay
+0060  65 72 73 00 38 00 73 69 5f 73 70 65 63 74 61 74   ers.8.si_spectat
+0070  6f 72 73 00 31 00 73 69 5f 75 73 65 70 61 73 73   ors.1.si_usepass
+0080  00 30 00 73 69 5f 77 61 72 6d 75 70 00 30 00 73   .0.si_warmup.0.s
+0090  69 5f 74 65 61 6d 44 61 6d 61 67 65 00 30 00 73   i_teamDamage.0.s
+00a0  69 5f 74 69 6d 65 4c 69 6d 69 74 00 31 30 00 73   i_timeLimit.10.s
+00b0  69 5f 66 72 61 67 4c 69 6d 69 74 00 31 30 00 73   i_fragLimit.10.s
+00c0  69 5f 6d 61 70 00 67 61 6d 65 2f 6d 70 2f 64 33   i_map.game/mp/d3
+00d0  64 6d 33 00 73 69 5f 67 61 6d 65 54 79 70 65 00   dm3.si_gameType.
+00e0  64 65 61 74 68 6d 61 74 63 68 00 73 69 5f 6e 61   deathmatch.si_na
+00f0  6d 65 00 57 69 63 6b 65 64 20 4d 6f 6a 6f 20 50   me.Wicked Mojo P
+0100  75 62 00 73 69 5f 70 75 72 65 00 31 00 67 61 6d   ub.si_pure.1.gam
+0110  65 6e 61 6d 65 00 62 61 73 65 44 4f 4f 4d 2d 31   ename.baseDOOM-1
+0120  00 00 00 00 5e 00 80 3e 00 00 6b 65 76 69 6e 00   ....^..>..kevin.
+0130  01 4a 00 80 3e 00 00 46 65 6c 69 63 65 00 02 4c   .J..>..Felice..L
+0140  00 80 3e 00 00 50 6c 61 79 65 72 5f 5f 00 03 39   ..>..Player__..9
+0150  00 80 3e 00 00 61 61 77 30 6e 00 04 75 00 80 3e   ..>..aaw0n..u..>
+0160  00 00 6d 65 65 6b 6c 6f 00 05 8c 00 80 3e 00 00   ..meeklo.....>..
+0170  55 6c 74 5e 35 69 6d 5e 34 75 73 00 07 91 00 80   Ult^5im^4us.....
+0180  3e 00 00 6d 65 67 61 20 6d 61 6e 00 08 38 00 80   >..mega man..8..
+0190  3e 00 00 42 72 75 63 65 20 4c 65 65 20 43 72 6f   >..Bruce Lee Cro
+01a0  73 73 6b 69 63 6b 00 20 01 00 00 00               sskick. ....
+
+The structure is comparable to the other ID engines' protocols. First, the
+command. Second, some console variables and their values. Third, the player
+info. Player info is organized as follows:
+FIXME:
+struct doom3_player_info
+{
+	short id;
+	short ping;
+	short rate;
+	char unknown[2] = "\0\0";
+	char *nickname;
+};
+According to qstat the challenge number follows directly after the
+"infoResponse" string. After the challenge we have the version.
+
+9.6. newVersion
+---------------
+(UDP, Master:27650 -> Server:27666/Client)
+
+0000  ff ff 6e 65 77 56 65 72 73 69 6f 6e 00 44 6f 77   ..newVersion.Dow
+0010  6e 6c 6f 61 64 20 76 65 72 73 69 6f 6e 20 31 2e   nload version 1.
+0020  31 3f 00 00 68 74 74 70 3a 2f 2f 77 77 77 2e 64   1?..http://www.d
+0030  6f 6f 6d 33 2e 63 6f 6d 2f 75 70 64 61 74 65 2e   oom3.com/update.
+0040  61 73 70 00 01 68 74 74 70 3a 2f 2f 77 77 77 2e   asp..http://www.
+0050  64 6f 6f 6d 33 2e 63 6f 6d 2f 75 70 64 61 74 65   doom3.com/update
+0060  2e 61 73 70 00                                    .asp.
+
+The "newVersion" packet is the reply to a "versionCheck" packet.
+
+9.7. heartbeat
+--------------
+(UDP, Server:27666 -> Master:27650)
+
+0000  ff ff 68 65 61 72 74 62 65 61 74 00               ..heartbeat.
+
+The good old "heartbeat" packet. Each time the Doom3 Master Server receives a
+"heartbeat" packet it sends a "getInfo" packet to that server.
+
+9.8. srvAuth
+------------
+(UDP, Server:27666 -> Master:27650)
+
+0000  ff ff 73 72 76 41 75 74 68 00 21 00 01 00 d9 ff   ..srvAuth.!.....
+0010  81 37 07 04 ff ff ff ff                           .7......
+
+A different srvAuth packet:
+---------------------------
+0000  ff ff 73 72 76 41 75 74 68 00 21 00 01 00 d9 ff   ..srvAuth.!.....
+0010  81 37 07 04 af 10 00 00 00                        .7.......
+
+XXX: What's that? Seems to include the server's version number.
+
+9.9. auth
+---------
+(UDP, Master:27650 -> Server:27666)
+
+0000  ff ff 61 75 74 68 00 02 ff ff d9 ff 81 37 00 00   ..auth.......7..
+0010  00 04                                             ..
+
+A different auth packet:
+------------------------
+0000  ff ff 61 75 74 68 00 01 af 10 d9 ff 81 37 00 00   ..auth.......7..
+0010  45 43 6c 4b 72 4a 42 38 6c 6b 63 00               EClKrJB8lkc.
+
+XXX: What's that?
+This is the reply to a "srvAuth" packet.
+
+9.10. challenge
+---------------
+(UDP, Client -> Server:27666)
+
+0000  ff ff 63 68 61 6c 6c 65 6e 67 65 00 af 10 00 00   ..challenge.....
+
+9.11. challengeResponse
+-----------------------
+(UDP, Server:27666 -> Client)
+
+0000  ff ff 63 68 61 6c 6c 65 6e 67 65 52 65 73 70 6f   ..challengeRespo
+0010  6e 73 65 00 0d a8 29 00 61 4a                     nse...).aJ    
+
+This is the reply to a "challenge" packet.
+XXX: What do the bytes after the command string mean?
+
+--
+
+10. Half-Life protocol
+======================
+
+Server port: UDP 27015
+Master port: UDP 27010
+
+10.1. s
+-------
+(Master:27010/Client -> Server)
+
+With challenge:
+-----------------
+0000  ff ff ff ff 73 0a 25 63 25 75                     ....s.%c%u
+
+This packet requests information from a server. The last 4 bytes in the packet
+are a 32 bit integer. The Master sents this packet with a challenge number on
+every "q" packet it receives.
+
+
+10.2. q
+-------
+(Server -> Master:27010)
+
+0000  71                                                q
+
+This is the heartbeat packet which is sent by the server to the Master every
+300 seconds.
+
+
+10.3. 0
+-------
+(Server:27015 -> Master:27010/Client)
+
+Without players:
+----------------
+0000  30 0a 5c 70 72 6f 74 6f 63 6f 6c 5c 34 36 5c 63   0.\protocol\46\c
+0010  68 61 6c 6c 65 6e 67 65 5c 32 31 30 30 34 35 33   hallenge\2100453
+0020  34 34 39 5c 70 6c 61 79 65 72 73 5c 30 5c 6d 61   449\players\0\ma
+0030  78 5c 36 5c 67 61 6d 65 64 69 72 5c 76 61 6c 76   x\6\gamedir\valv
+0040  65 5c 6d 61 70 5c 75 6e 64 65 72 74 6f 77 5c 74   e\map\undertow\t
+0050  79 70 65 5c 64 5c 70 61 73 73 77 6f 72 64 5c 30   ype\d\password\0
+0060  5c 6f 73 5c 6c 5c 73 65 63 75 72 65 5c 30 5c 6c   \os\l\secure\0\l
+0070  61 6e 5c 30 5c 76 65 72 73 69 6f 6e 5c 33 2e 31   an\0\version\3.1
+0080  2e 31 2e 30 0a                                    .1.0. 
+
+This packet is the reply to a "s" packet.
+
+--
+
+11. Links
+=========
 
 QStat - http://www.qstat.org
 XQF - http://www.linuxgames.com/xqf/
 Ethereal - http://www.ethereal.com
 Q2 Network Protocol Specs - http://www.csse.monash.edu.au/~timf/bottim/q2net/q2network-0.03.html
 Luigi Auriemma's homepage - http://aluigi.altervista.org
+QuakeForge - http://www.quakeforge.net
 
 
-Last modified: 2004-04-26 Andre' Schulz
+Last modified: 2005-05-19 Andre' Schulz
 
-(C) Copyright 2003,2004 Ingo Rohlfs & Andre' Schulz
+(C) Copyright 2003,2004,2005 Ingo Rohlfs & Andre' Schulz
 Released under GPL
 

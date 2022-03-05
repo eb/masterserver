@@ -16,13 +16,22 @@
  * along with masterserver; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * The author can be contacted at andre@malchen.de
+ * The author can be contacted at chickenman@exhale.de
+ */
+/*
+ * vim:sw=4:ts=4
  */
 
-#include "../masterserver.h"
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <sys/socket.h> // for socket() etc.
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-// for future use
-// #define QWM_PROTOCOL IPPROTO_UDP
+#include "../masterserver.h"
 
 #define HEARTBEAT_TIMEOUT 300
 
@@ -77,8 +86,8 @@ const char	qw_pkt_echo[]		= "e"; // more data?
 const int	qw_pkt_echo_len		= 1;
 */
 
-const char qwm_plugin_version[] = "0.1.1";
-static int qwm_ports[] = { 27000 };
+const char qwm_plugin_version[] = "0.2";
+static port_t qwm_ports[] = { { IPPROTO_UDP, 27000 } };
 
 // player info
 typedef struct {
@@ -104,17 +113,16 @@ typedef struct {
 	qwm_player_data_t *_player; // player info
 	// following is information not in packet
 	int _players; // # of players
-	// TODO: what about custom cvars (Administrator, ...) ?
 } qwm_private_data_t;
 
-static void info(void); // print information about plugin
-static int process(char *packet); // process packet and return a value
-static int process_heartbeat(char *packet);
-static int process_slistreq();
-static int process_ping();
-static int process_shutdown();
-static void cleanup(void);
-void init_plugin(void) __attribute__ ((constructor));
+static void	info(void); // print information about plugin
+static int	process(char *, int); // process packet and return a value
+static int	process_heartbeat(char *);
+static int	process_slistreq();
+static int	process_ping();
+static int	process_shutdown();
+//static void cleanup(void);
+void		init_plugin(void) __attribute__ ((constructor));
 
 static
 struct masterserver_plugin qwm
@@ -123,11 +131,11 @@ struct masterserver_plugin qwm
 	masterserver_version,
 	qwm_ports,
 	1,
-//	QWM_PROTOCOL, // for future use
 	HEARTBEAT_TIMEOUT,
 	&info,
 	&process,
-	&cleanup
+	NULL,	// free_privdata()
+	NULL	// cleanup()
 };
 
 static void
@@ -217,14 +225,14 @@ process_slistreq()
 		return -2;
 	}
 
-	qwm.msg_out_length[0] = qw_pkt_header_len+qw_pkt_slistrep_len
-			+(qwm.num_servers*6);
+	qwm.msg_out_length[0] = qw_pkt_header_len + qw_pkt_slistrep_len
+							+ (qwm.num_servers*6);
 
 	// get memory for header and command
-	qwm.msg_out[0] = calloc(qwm.msg_out_length[0]+1,sizeof(char));
+	qwm.msg_out[0] = calloc(qwm.msg_out_length[0]+1, 1);
 	if (qwm.msg_out[0] == NULL) {
 		ERRORV("calloc() failed trying to get %d bytes!\n",
-				(qwm.msg_out_length[0]+1)*sizeof(char));
+				qwm.msg_out_length[0]+1);
 		return -2;
 	}
 
@@ -279,10 +287,10 @@ process_ping()
 		return -2; // TODO: define retval for errors
 	}
 
-	qwm.msg_out[0] = calloc(qwm.msg_out_length[0]+1, sizeof(char));
+	qwm.msg_out[0] = calloc(qwm.msg_out_length[0]+1, 1);
 	if (qwm.msg_out[0] == NULL) {
 		ERRORV("calloc() failed trying to get %d bytes!\n",
-				(qwm.msg_out_length[0]+1)*sizeof(char));
+				qwm.msg_out_length[0]+1);
 		return -2; // TODO: define retval for errors
 	}
 	DEBUG("allocated %d bytes for msg_out[0]\n", qwm.msg_out_length[0]);
@@ -318,7 +326,7 @@ process_shutdown()
 
 
 static int
-process(char *packet)
+process(char *packet, int packetlen)
 {
 	switch(packet[0]) {
 		// which packet did we receive?
@@ -340,10 +348,10 @@ process(char *packet)
 	} // end switch()
 }
 
+/*
 static void
 cleanup(void)
 {
-	/*
 	int i, j;
 	qwm_private_data_t *tmp_privdata;
 
@@ -360,8 +368,8 @@ cleanup(void)
 			free(tmp_privdata);
 			free(qwm.list[i].private_data);
 		}
-	}*/
-}
+	}
+}*/
 
 void
 init_plugin(void)

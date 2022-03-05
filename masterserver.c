@@ -18,19 +18,38 @@
  *
  * The author can be contacted at andre@malchen.de
  */
+/*
+ * vim:sw=4:ts=4
+ */
 
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <pthread.h>
+#include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <errno.h>
+#include <dirent.h> 	// opendir()
+#include <dlfcn.h> 		// for dlopen() etc.
+#include <fcntl.h>
+#include <grp.h> 		// for changing user
+#include <pwd.h> 		// for changing user
 
-#include <dirent.h> // opendir()
-#include <sys/socket.h> // for socket() etc.
-#include <net/if.h> // IFNAMSIZ
-#include <pwd.h> // for changing user
-#include <grp.h> // for changing user
-#include <dlfcn.h> // for dlopen() etc.
+#if defined(SOLARIS)
+#include <sys/time.h>
+#include <limits.h>		// PATH_MAX
+#elif defined(__FreeBSD__)
+#include <limits.h>
+#endif
+
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/select.h> // for select()
+#include <sys/socket.h> // for socket() etc.
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <net/if.h> 	// IFNAMSIZ
 
 #include "masterserver.h" // masterserver stuff
 
@@ -45,14 +64,15 @@ struct masterserver_plugin *plugins = NULL;
 
 
 // function prototypes
-extern void delete_server(struct masterserver_plugin *me, int server_num); // generic function for removing servers from server list
+void change_user_and_group_to(char *, char *); // self explanatory
+extern void delete_server(struct masterserver_plugin *, int); // generic function for removing servers from server list
 void exit_printhelp(void); // print help and exit
 void exit_printversion(void); // print version and exit
-void give_up_root_privileges(void); // self explanatory
-int load_plugins(char *masterserver_plugin_dir, void *handle[]); // load plugins from the given directory
-void plugin_thread(void *arg); // main thread calling plugin routines
-void plugin_heartbeat_thread(void *arg); // remove dead servers from server list
-extern void register_plugin(struct masterserver_plugin *me); // plugins call this functions to register themselves
+int load_plugins(char *, void ***); // load plugins from the given directory
+void plugin_thread(void *); // main thread calling plugin routines
+void plugin_heartbeat_thread(void *); // remove dead servers from server list
+extern void register_plugin(struct masterserver_plugin *); // plugins call this functions to register themselves
+void sigint_handler(int); // SIGINT handler
 
 void
 exit_printhelp(void)
@@ -60,26 +80,29 @@ exit_printhelp(void)
 	fprintf(stdout,
 "Usage: masterserver [options]\n"
 "Options:\n"
-"  -D\tgo into daemon mode\n"
-"  -d\tdebug mode\n"
-"  -h\toutput this help text\n"
-"  -i\tbind the masterserver to specific interfaces\n"
-"    \t(use more than once for multiple interfaces)\n"
-"  -l\tlog stdout to a file\n"
+"  -D\t\tgo into daemon mode\n"
+"  -d\t\tdebug mode\n"
+"  -g groupname\tgroup under which masterserver shall run\n"
+"    \t\t(only together with -u)\n"
+"  -h\t\toutput this help text\n"
+"  -i interface\tbind the masterserver to specific interfaces\n"
+"    \t\t(use more than once for multiple interfaces)\n"
+"  -l filename\tlog stdout to a file\n"
 /*"  -L\tset log level\n"
 "    \t0 = INFO\n"
 "    \t1 = WARNING\n"
 "    \t2 = ERROR\n"*/
-"  -p\tset location of plugins\n"
-"  -V\tdisplay version information and exit\n"
-"Report bugs to <andre@malchen.de>.\n");
+"  -p path\tset location of plugins\n"
+"  -u username\tusername under which masterserver shall run\n"
+"  -V\t\tdisplay version information and exit\n"
+"Report bugs to <chickenman@exhale.de>.\n");
 }
 
 void
 exit_printversion(void)
 {
 	fprintf(stdout,
-"Copyright (C) 2003 André Schulz and Ingo Rohlfs\n"
+"Copyright (C) 2003,2004,2005 André Schulz and Ingo Rohlfs\n"
 "masterserver comes with NO WARRANTY,\n"
 "to the extent permitted by law.\n"
 "You may redistribute copies of masterserver\n"
@@ -87,45 +110,53 @@ exit_printversion(void)
 "For more information about these matters,\n"
 "see the files named COPYING.\n\n");
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 void
-give_up_root_privileges(void)
+change_user_and_group_to(char *user, char *group)
 {
 	int retval = 0;
 	struct passwd *passwd_temp;
+	struct group *group_temp;
 
-	DEBUG("getting uid of user \"masterserver\"\n");
-	// check if user "masterserver" exists
-	// and get user infos
-	passwd_temp = getpwnam("masterserver");
+	DEBUG("getting uid of user \"%s\"\n", user);
+	// check if user exists and get user infos
+	passwd_temp = getpwnam(user);
 	if (passwd_temp == NULL) {
 		ERRORV("getpwnam() (errno: %d - %s)\n", errno, strerror(errno));
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 
-	// change uid/gid to "masterserver" to drop privileges
-	DEBUG("setting gid to %d\n", passwd_temp->pw_gid);
-	// change group to the one of user "masterserver"
-	retval = setgid(passwd_temp->pw_gid);
+	if (group == NULL)
+		group_temp = getgrgid(passwd_temp->pw_gid);
+	else
+		group_temp = getgrnam(group);
+	if (group_temp == NULL) {
+		ERRORV("getgrgid() (errno: %d - %s)\n", errno, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	DEBUG("setting gid to %d (\"%s\")\n",
+		group_temp->gr_gid, group_temp->gr_name);
+	// change uid/gid to drop privileges
+	retval = setgid(group_temp->gr_gid);
 	if (retval == -1) {
 		ERRORV("setgid() (errno: %d - %s)\n", errno, strerror(errno));
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 
-	DEBUG("setting uid to %d (\"masterserver\")\n", passwd_temp->pw_uid);
-	// change uid to "masterserver"
+	DEBUG("setting uid to %d (\"%s\")\n",
+		passwd_temp->pw_uid, passwd_temp->pw_name);
 	retval = setuid(passwd_temp->pw_uid);
 	if (retval == -1) {
 		ERRORV("setuid() (errno: %d - %s)\n", errno, strerror(errno));
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
-	INFO("give up root permissions and uid/gid change successful\n");
+	INFO("uid/gid change successful\n");
 }
 
 int
-load_plugins(char *masterserver_plugin_dir, void *handle[])
+load_plugins(char *masterserver_plugin_dir, void ***handle)
 {
 	int retval = 0;
 	int num_plugins = 0;
@@ -141,30 +172,35 @@ load_plugins(char *masterserver_plugin_dir, void *handle[])
 		return -1;
 	}
 
+	// load all plugins in masterserver_plugin_dir
 	while ((plugin_dir_entry = readdir(plugin_dir))) {
-		// omit . and ..
-		// FIXME: don't try to load files != .so
+		// omit ., .. and files non-.so suffix
 		if ((strcmp(plugin_dir_entry->d_name, ".") == 0)
-				|| (strcmp(plugin_dir_entry->d_name, "..") == 0))
+				|| (strcmp(plugin_dir_entry->d_name, "..") == 0)
+				|| (strcmp(plugin_dir_entry->d_name+strlen(plugin_dir_entry->d_name)-3, ".so") != 0))
 			continue;
-		else
-		{
-			snprintf(path,
-				strlen(masterserver_plugin_dir)+plugin_dir_entry->d_reclen+2,
-				"%s/%s", masterserver_plugin_dir, plugin_dir_entry->d_name);
-			DEBUG("snprintf wrote %d chars\n",
-				strlen(masterserver_plugin_dir)+plugin_dir_entry->d_reclen+2);
-			DEBUG("path: %s\n", path);
-			handle[num_plugins] = dlopen(path, RTLD_NOW);
-			if (!handle[num_plugins])
-			{
-				ERRORV("dlopen (%s)\n", dlerror());
-				exit(-1);
-			}
-			DEBUG("dlopen() successful\n");
-			INFO("%s loaded\n", plugin_dir_entry->d_name);
-			num_plugins++;
+
+		snprintf(path,
+			strlen(masterserver_plugin_dir)+plugin_dir_entry->d_reclen+2,
+			"%s/%s", masterserver_plugin_dir, plugin_dir_entry->d_name);
+		DEBUG("path: \"%s\"\n", path);
+
+		// allocate memory for the new handle
+		*handle = realloc(*handle, (num_plugins+1)*sizeof(void*));
+		if (*handle == NULL) {
+			ERRORV("realloc() failed trying to get %d bytes!\n",
+					(num_plugins+1)*sizeof(void *));
+			return -1;
 		}
+		(*handle)[num_plugins] = dlopen(path, RTLD_NOW);
+		if ((*handle)[num_plugins] == NULL)
+		{
+			ERRORV("dlopen (%s)\n", dlerror());
+			return -1;
+		}
+		DEBUG("dlopen() successful (0x%x)\n", (*handle)[num_plugins]);
+		INFO("%s loaded\n", plugin_dir_entry->d_name);
+		num_plugins++;
 	}
 
 	retval = closedir(plugin_dir);
@@ -202,15 +238,15 @@ register_plugin(struct masterserver_plugin *me)
 	me->num_servers = 0;
 	me->list = calloc(1, sizeof(serverlist_t)); // initialize server list
 	if (me->list == NULL) {
-		ERRORV("calloc() failed trying to get %d bytes!\n", sizeof(serverlist_t));
-		exit(-1);
+		ERRORV("calloc() failed to get %d bytes!\n", sizeof(serverlist_t));
+		exit(EXIT_FAILURE);
 	}
 	me->num_sockets = 0;
 	me->socket_d = NULL;
 	me->server = calloc(me->num_ports, sizeof(struct sockaddr_in));
 	if (me->server == NULL) {
 		ERRORV("calloc() failed trying to get %d bytes!\n", me->num_ports*sizeof(struct sockaddr_in));
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 	me->msg_out = NULL;
 	me->msg_out_length = NULL;
@@ -225,9 +261,12 @@ main(int argc, char *argv[])
 	int option_bind_to_interface = 0;
 	int option_daemon = 0;
 	int option_plugin_dir = 0;
+	int option_change_user_and_group = 0;
+	char *user = NULL;
+	char *group = NULL;
 	int i, k, l, num_plugins;
 
-	void *handle[10]; // for dlopen() calls, max. 10 plugins
+	void **handle = NULL; // for dlopen() calls
 	int retval;	// return value of syscalls
 	unsigned int num_plugins_enabled, num_listen_interfaces = 0;
 	char *logfile; // pointer to argv argument
@@ -237,7 +276,6 @@ main(int argc, char *argv[])
 
 	// temporary variables
 	int setsockopt_temp = 1;
-	uid_t uid_temp;
 	pid_t temp_pid;
 
 	// seed the rng; needed for challenge creation in q3 plugin
@@ -251,13 +289,40 @@ main(int argc, char *argv[])
 	// cmdline parser
 	while (1) {
 		//retval = getopt(argc, argv, "?dDhi:l:L:p:V");
-		retval = getopt(argc, argv, "?dDhi:l:p:V");
+		retval = getopt(argc, argv, "?dDg:hi:l:p:u:V");
 		if (retval == -1) break;
 
 		switch (retval) {
+			// debug
 			case 'd':
 				debug = 1;
 				break;
+			// daemon mode
+			case 'D':
+				option_daemon = 1;
+				break;
+			// run masterserver under a certain group
+			case 'g':
+				group = argv[optind-1];
+				break;
+			// bind to interface
+			case 'i':
+				if (getuid() != 0) {
+					ERRORV("you have to be root to bind to specific interfaces\n");
+					exit(EXIT_FAILURE);
+				}
+				if (strlen(argv[optind-1]) > IFNAMSIZ) {
+					ERRORV("interface/device name is longer than IFNAMSIZ = %d"
+							" chars\n", IFNAMSIZ);
+					exit(EXIT_FAILURE);
+				}
+
+				num_listen_interfaces++;
+				listen_interface = realloc(listen_interface, num_listen_interfaces*sizeof(char *));
+				listen_interface[num_listen_interfaces-1] = argv[optind-1];
+				option_bind_to_interface = 1;
+				break;
+			// log messages to a file
 			case 'l':
 				option_logfile = 1;
 				logfile = argv[optind-1];
@@ -269,41 +334,38 @@ main(int argc, char *argv[])
 					return -1;
 				}
 				break;*/
-			case 'V':
-				exit_printversion();
-			case 'i':
-				uid_temp = getuid();
-				/*if (uid_temp != 0) {
-					fprintf(stderr, "masterserver Error: you have to be root to bind to specific interfaces\n");
-					return -1;
-				}*/
-				if (strlen(argv[optind-1]) > IFNAMSIZ) {
-					ERRORV("interface/device name is longer than IFNAMSIZ = %d"
-							" chars\n", IFNAMSIZ);
-					return -1;
-				}
-
-				num_listen_interfaces++;
-				listen_interface = realloc(listen_interface, num_listen_interfaces*sizeof(char *));
-				listen_interface[num_listen_interfaces-1] = argv[optind-1];
-				option_bind_to_interface = 1;
-				break;
-			case 'D':
-				option_daemon = 1;
-				break;
+			// plugin path
 			case 'p':
 				masterserver_plugin_dir = argv[optind-1];
 				option_plugin_dir = 1;
 				break;
+			// run masterserver as a certain user
+			case 'u':
+				if (getuid() != 0) {
+					ERRORV("you have to be root to change user/group\n");
+					exit(EXIT_FAILURE);
+				}
+				user = argv[optind-1];
+				option_change_user_and_group = 1;
+				break;
+			// version information
+			case 'V':
+				exit_printversion();
+			// help
 			case 'h':
 			case '?':
 			default:
 				exit_printhelp();
-				return -1;
+				return EXIT_FAILURE;
 		} // switch(retval)
 	} // while(1)
+
+	if ((group != NULL) && !option_change_user_and_group) {
+		ERROR("-g can only be used together with -u\n");
+		return EXIT_FAILURE;
+	}
 	// XXX: this is a hack to get multi port working
-	if (num_listen_interfaces == 0 && !option_bind_to_interface) num_listen_interfaces = 1;
+	if ((num_listen_interfaces == 0) && !option_bind_to_interface) num_listen_interfaces = 1;
 
 	// check -l cmdline argument
 	if (option_logfile) {
@@ -313,7 +375,7 @@ main(int argc, char *argv[])
 		retval = log_init(logfile, "masterserver");
 		if (retval == -1) {
 			ERROR("log_init()\n");
-			return -1;
+			return EXIT_FAILURE;
 		}
 
 		// log stdout to log file
@@ -333,19 +395,19 @@ main(int argc, char *argv[])
 			ERRORV("fork() (errno: %d - %s)\n", errno, strerror(errno));
 			return -1;
 		} else if (temp_pid != 0) {
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 
 		retval = setsid();
 		if (retval == -1) {
 			ERRORV("setsid() (errno: %d - %s)\n", errno, strerror(errno));
-			exit(-1);
+			exit(EXIT_FAILURE);
 		}
 
 		retval = chdir("/");
 		if (retval == -1) {
 			ERRORV("chdir() (errno: %d - %s)\n", errno, strerror(errno));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		umask(0);
@@ -353,22 +415,25 @@ main(int argc, char *argv[])
 		if (option_logfile == 0) {
 			if (freopen("/dev/null", "a", stdout) != stdout) {
 				ERRORV("freopen() (errno: %d - %s)\n", errno, strerror(errno));
-				return -1;
+				return EXIT_FAILURE;
 			}
 		}
 	}
 
 	// check if user specified an alternative plugin dir
-	// if he did well we set already set it above
+	// if he did well we already set it above
 	// else we set the default here
 	if (!option_plugin_dir)
 		masterserver_plugin_dir = MASTERSERVER_LIB_DIR;
 
+	// register signal handler
+	signal(SIGINT, &sigint_handler);
+
 	// load all libs in plugin_dir
-	num_plugins = load_plugins(masterserver_plugin_dir, handle);
+	num_plugins = load_plugins(masterserver_plugin_dir, &handle);
 	if (num_plugins <= 0) {
 		ERRORV("no plugins found in \"%s\"\n", masterserver_plugin_dir);
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	// print out a summary
@@ -392,7 +457,7 @@ main(int argc, char *argv[])
 		for (k = 0; k < (*j)->num_ports; k++) {
 			// fill sockaddr_in structure
 			(*j)->server[k].sin_family = AF_INET;
-			(*j)->server[k].sin_port = htons((*j)->port[k]); // port number from plugin
+			(*j)->server[k].sin_port = htons((*j)->port[k].num); // port number from plugin
 			(*j)->server[k].sin_addr.s_addr = htonl(INADDR_ANY);
 
 			for (l = 0; l < num_listen_interfaces; l++, (*j)->num_sockets++) {
@@ -400,7 +465,7 @@ main(int argc, char *argv[])
 				if ((*j)->socket_d == NULL) {
 					ERRORV("realloc() failed trying to get %d bytes\n",
 							(*j)->num_sockets+1*sizeof(int));
-					exit(-1);
+					return EXIT_FAILURE;
 				}
 
 				(*j)->socket_d[(*j)->num_sockets] = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -413,11 +478,12 @@ main(int argc, char *argv[])
 				if (retval == -1) {
 					ERRORV("setsockopt() (errno: %d - %s)\n", errno,
 							strerror(errno));
-					return -1;
+					return EXIT_FAILURE;
 				}
 
 				// bind socket to the interfaces specified in -i
 				if (option_bind_to_interface) {
+#ifdef __linux__
 					DEBUG("setsockopt(..., \"%s\", %d+1);\n",
 							listen_interface[l], strlen(listen_interface[l]));
 					retval = setsockopt((*j)->socket_d[(*j)->num_sockets],
@@ -426,13 +492,14 @@ main(int argc, char *argv[])
 					if (retval == -1) {
 						ERRORV("setsockopt() (errno: %d - %s)\n", errno,
 								strerror(errno));
-						return -1;
+						return EXIT_FAILURE;
 					}
 					DEBUG("%s socket #%d successfully bound to %s\n",
 							(*j)->name, (*j)->num_sockets, listen_interface[l]);
 					INFO("listening on %s UDP port %d\n", listen_interface[l],
-							(*j)->port[k]);
-				} else INFO("listening on UDP port %d\n", (*j)->port[k]);
+							(*j)->port[k].num);
+#endif					
+				} else INFO("listening on UDP port %d\n", (*j)->port[k].num);
 
 				// bind socket to structure
 				retval = bind((*j)->socket_d[(*j)->num_sockets],
@@ -440,7 +507,7 @@ main(int argc, char *argv[])
 						sizeof(struct sockaddr_in));
 				if (retval == -1) {
 					ERRORV("bind() (errno: %d - %s)\n", errno, strerror(errno));
-					return -1;
+					return EXIT_FAILURE;
 				}
 			}
 		}
@@ -448,7 +515,11 @@ main(int argc, char *argv[])
 	}
 	DEBUG("sockets successfully created and bound\n");
 
-	if (option_bind_to_interface) give_up_root_privileges();
+	if (option_bind_to_interface
+		|| option_change_user_and_group)
+	{
+		change_user_and_group_to(user, group);
+	}
 
 	// main part
 	DEBUG("creating plugin threads...\n");
@@ -465,7 +536,7 @@ main(int argc, char *argv[])
 					ERROR("pthread_create returned an error; not enough system"
 						" resources to create a process for the new thread\n");
 					ERRORV("or more than %d threads are already active\n", PTHREAD_THREADS_MAX);
-					return -1;
+					return EXIT_FAILURE;
 			}
 		}
 		INFO("created %s plugin thread\n", (*j)->name);
@@ -487,12 +558,15 @@ main(int argc, char *argv[])
 					ERROR("pthread_create returned an error; not enough system"
 						" resources to create a process for the new thread\n");
 					ERRORV("or more than %d threads are already active\n", PTHREAD_THREADS_MAX);
-	                return -1;
+	                return EXIT_FAILURE;
 			}
 		}
 		INFO("created heartbeat thread for %s\n", (*j)->name);
 		j = &(*j)->next;
 	}
+
+	// admin interface
+	// TODO
 
 	// cleanup and exit
 	// (not really; this is just to stop the parent from eating cpu time)
@@ -502,59 +576,65 @@ main(int argc, char *argv[])
 	//		free private data
 	INFO("joining plugin threads for graceful cleanup/shutdown... \n");
 	for (j = &plugins; *j; j = &(*j)->next) {
-		DEBUG("joining thread #%ld\n", (*j)->thread_nr);
+		DEBUG("joining %s thread (#%ld)\n", (*j)->name, (*j)->thread_nr);
 		retval = pthread_join((*j)->thread_nr, NULL);
 		if (retval != 0) {
 			ERROR("pthread_join()\n");
-			return -1;
+			return EXIT_FAILURE;
 		}
-		DEBUG("thread #%ld exited; cleaning up...\n", (*j)->thread_nr);
+
+		DEBUG("joining %s heartbeat thread (#%ld)\n", (*j)->name, (*j)->heartbeat_thread_nr);
+		retval = pthread_join((*j)->heartbeat_thread_nr, NULL);
+		if (retval != 0) {
+			ERROR("pthread_join()\n");
+			return EXIT_FAILURE;
+		}
+		DEBUG("thread #%ld exited; calling plugin cleanup() function\n", (*j)->heartbeat_thread_nr);
+
 		// free private data
 		// to really free all private data we have to call a cleanup function
 		// of the plugin
-		if (&(*j)->cleanup != NULL) (*j)->cleanup();
+		if ((*j)->cleanup != NULL) (*j)->cleanup();
 
 		// free server list
 		free((*j)->list);
 		for (i = 0; i < (*j)->num_sockets; i++) close((*j)->socket_d[i]);
-		if ((*j)->num_msgs > 0)
-			for (i = 0; i < (*j)->num_msgs; i++) free((*j)->msg_out[i]);
+		for (i = 0; i < (*j)->num_msgs; i++) free((*j)->msg_out[i]);
 		free((*j)->msg_out);
 		free((*j)->msg_out_length);
-		DEBUG("thread #%ld clean up successful\n", (*j)->thread_nr);
+		DEBUG("%s clean up successful\n", (*j)->name);
 	}
 
 	DEBUG("closing dynamic libs ...\n");
-	for (; num_plugins > 0; num_plugins--)
-		dlclose(&handle[num_plugins]);
+	INFO("unload plugins\n");
+	while (num_plugins-- > 0) {
+		DEBUG("closing dynamic lib %d (0x%x)\n", num_plugins, handle[num_plugins]);
+		dlclose(handle[num_plugins]);
+	}
 	DEBUG("dynamic libs successfully closed\n");
 
-	// TODO: check retval ?
 	log_close();
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 void
 plugin_thread(void *arg)
 {
 	int retval; // temp var for return values
-	int i, j, k;
-	char *msg_in; // buffer for incoming packet
+	int i, j, packetlen;
+	char msg_in[MAX_PKT_LEN]; // buffer for incoming packet
 	struct masterserver_plugin *me = (struct masterserver_plugin *) arg;
-	int client_len = sizeof(me->client);
+	unsigned int client_len = sizeof(me->client);
 	int n = 0; // for select()
 	fd_set rfds;
 
 	DEBUG("%s_thread: hello world\n", me->name);
 
-	msg_in = calloc(MAX_PKT_LEN, sizeof(char));
-	if (msg_in == NULL) {
-		ERROR("not enough memory for incoming packet buffer\n");
-		pthread_exit((void *) -1);
-	}
+	// initialize msg_in buffer
+	memset(msg_in, 0, MAX_PKT_LEN);
 
 	// main loop
-	while (1) {
+	while (!master_shutdown) {
 		FD_ZERO(&rfds);
 		for (i = 0; i < me->num_sockets; i++) {
 			if (me->socket_d[i] > n) n = me->socket_d[i];
@@ -562,24 +642,25 @@ plugin_thread(void *arg)
 		}
 		retval = select(n+1, &rfds, NULL, NULL, NULL);
 		if (retval == -1) {
+			if (errno == EINTR) continue;
 			ERRORV("%s_thread: select() (errno: %d - %s)\n", me->name, errno,
 					strerror(errno));
-			pthread_exit((void *) 1);
+			pthread_exit((void *) -1);
 		}
 		for (i = 0; i < me->num_sockets; i++) {
 			if (FD_ISSET(me->socket_d[i], &rfds)) {
-				retval = recvfrom(me->socket_d[i], msg_in, MAX_PKT_LEN, 0,
+				packetlen = recvfrom(me->socket_d[i], &msg_in, MAX_PKT_LEN-1, 0,
 						(struct sockaddr *) &me->client, &client_len);
-				if (retval == -1) {
+				if (packetlen == -1) {
 					ERRORV("%s_thread: recvfrom() (errno: %d - %s)\n", me->name,
 							errno, strerror(errno));
 					ERRORV("%s_thread: socket_d is %d\n", me->name,
 							me->socket_d[i]);
 					ERRORV("%s_thread: MAX_PKT_LEN is %d\n",
 						me->name, MAX_PKT_LEN);
-					pthread_exit((void *) 1);
+					pthread_exit((void *) -1);
 				}
-				DEBUG("%d bytes received\n", retval);
+				DEBUG("%d bytes received\n", packetlen);
 
 				DEBUG("locking mutex\n");
 				retval = pthread_mutex_lock(&me->mutex);
@@ -590,10 +671,9 @@ plugin_thread(void *arg)
 				}
 				DEBUG("mutex succesfully locked\n");
 
-				// TODO: create new thread
-				retval = me->process(msg_in);
+				retval = me->process(msg_in, packetlen);
 				if (retval == -2) {
-					ERRORV("%s_thread: plugin reported: not enough memory for an outgoing packet\n", me->name);
+					ERRORV("%s_thread: plugin reported: out of memory\n", me->name);
 					// TODO: cleanup?
 					pthread_exit((void *) -1);
 				} else if (retval == -1) {
@@ -601,9 +681,6 @@ plugin_thread(void *arg)
 				} else if (retval == 0) {
 					//INFO("%s_thread: plugin reported: server successfully added\n", me->name);
 				} else if (retval == 1) {
-					DEBUG("me->num_msgs is %d\n", me->num_msgs);
-					for (k = 0; k < me->num_msgs; k++)
-						DEBUG("me->msg_out_length[%d] is %d\n", k, me->msg_out_length[k]);
 					DEBUG("sending %d packets to %s:%u\n",
 							me->num_msgs, inet_ntoa(me->client.sin_addr),
 							ntohs(me->client.sin_port));
@@ -626,8 +703,7 @@ plugin_thread(void *arg)
 				if (me->num_msgs > 0) {
 					DEBUG("freeing outgoing packets\n");
 					for (j = 0; j < me->num_msgs; j++)
-						if (me->msg_out[j] != NULL)
-							free(me->msg_out[j]);
+						free(me->msg_out[j]);
 					me->num_msgs = 0;
 					free(me->msg_out);
 					free(me->msg_out_length);
@@ -643,7 +719,7 @@ plugin_thread(void *arg)
 				}
 			} // if(FD_ISSET())
 		} // for(i)
-	} // end while(1)
+	} // while()
 }
 
 void
@@ -657,7 +733,7 @@ plugin_heartbeat_thread(void *arg)
 	DEBUG("%s_heartbeat_thread: hello world\n", me->name);
 
 	// main loop
-	while (1) {
+	while (!master_shutdown) {
 		DEBUG("sleeping %d seconds ...\n", me->heartbeat_timeout);
 		sleep(me->heartbeat_timeout);
 		DEBUG("waking up\n");
@@ -689,24 +765,20 @@ plugin_heartbeat_thread(void *arg)
 			ERROR("pthread_mutex_unlock\n");
 			pthread_exit((void *) -1);
 		}
-	} // end while(1)
+	} // while()
 }
 
 extern void
 delete_server(struct masterserver_plugin *me, int server_num)
 {
-	int i = server_num;
-
+	if (me->free_privdata != NULL) me->free_privdata(me->list[server_num].private_data);
 	me->num_servers--;
-	me->list[i].ip = me->list[me->num_servers].ip;
-	me->list[i].port = me->list[me->num_servers].port;
-	me->list[i].lastheartbeat = me->list[me->num_servers].lastheartbeat;
-	me->list[i].private_data = me->list[me->num_servers].private_data;
+	me->list[server_num] = me->list[me->num_servers];
 
 	DEBUG("reallocating server list (old size: %d -> new size: %d)\n",
 			(me->num_servers+2)*sizeof(serverlist_t),
 			(me->num_servers+1)*sizeof(serverlist_t));
-	me->list = (serverlist_t *) realloc(me->list, (me->num_servers + 1) * sizeof(serverlist_t));
+	me->list = (serverlist_t *) realloc(me->list, (me->num_servers+1)*sizeof(serverlist_t));
 	if (me->list == NULL) {
 		ERROR("(__)\n");
 		ERROR(" °°\\\\\\~\n");
@@ -714,5 +786,12 @@ delete_server(struct masterserver_plugin *me, int server_num)
 		pthread_exit((void *) -1);
 	}
 	DEBUG("reallocation successful\n");
+}
+
+void
+sigint_handler(int signum)
+{
+	DEBUG("caught SIGINT!\n");
+	master_shutdown = 1;
 }
 

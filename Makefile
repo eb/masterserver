@@ -1,21 +1,5 @@
-SHELL = /bin/sh
+include common.mk
 
-prefix = /usr
-exec_prefix = $(prefix)
-bindir = $(exec_prefix)/bin
-sbindir = $(exec_prefix)/sbin
-
-INSTALL = /usr/bin/install
-INSTALLDATA = /usr/bin/install -m 644
-CC = /usr/bin/gcc
-LD = /usr/bin/ld
-RM = /bin/rm -f
-RMDIR = /bin/rmdir -p --ignore-fail-on-non-empty
-LDFLAGS = -lpthread -ldl
-STD_CFLAGS = -rdynamic -DNDEBUG
-DEBUG_CFLAGS = -g -Wall -rdynamic -DDEBUG # \
-	-DMASTERSERVER_LIB_DIR=\"/usr/lib/lasange/masterserver\"
-CFLAGS = $(DEBUG_CFLAGS)
 OBJ_FILES = masterserver.o logging.o
 PROGRAM = masterserver
 
@@ -25,14 +9,14 @@ all: masterserver plugins
 .SUFFIXES = .c .o
 
 .c.o:
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS_MAIN) -c $< -o $@ 
 
 masterserver.o: masterserver.c masterserver.h
 
 logging.o: logging.c logging.h
 
 masterserver: $(OBJ_FILES)
-	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $(OBJ_FILES)
+	$(CC) $(LDFLAGS) $(CFLAGS_MAIN) -o $@ $(OBJ_FILES)
 
 plugins:
 	$(MAKE) -C plugins
@@ -48,5 +32,8 @@ install: all
 uninstall:
 	$(RM) $(bindir)/$(PROGRAM)
 	$(MAKE) -C plugins uninstall
-	$(RMDIR) /usr/lib/lasange/masterserver
+	$(RMDIR) $(libdir)/lasange/masterserver
+
+check:
+	$(MAKE) -C tests all
 
